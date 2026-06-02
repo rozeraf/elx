@@ -3,11 +3,68 @@ pub mod long;
 pub mod tree;
 
 use terminal_size::{terminal_size, Width};
+use crate::config::Config;
+use crate::cli::Cli;
+use std::io::{stdout, IsTerminal};
 
 pub fn get_terminal_width() -> usize {
     if let Some((Width(w), _)) = terminal_size() {
         w as usize
     } else {
         80
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct DisplayOptions {
+    pub icons: bool,
+    pub color: bool,
+    pub classify: bool,
+    pub git_ignore: bool,
+    pub one_per_line: bool,
+}
+
+impl DisplayOptions {
+    pub fn new(config: &Config, cli: &Cli) -> Self {
+        let is_tty = stdout().is_terminal();
+        
+        // 1. Start with global config
+        let mut icons = config.icons;
+        let mut color = config.color;
+        let mut classify = config.classify;
+        let mut git_ignore = config.git_ignore;
+        let mut one_per_line = false;
+
+        // 2. Apply TTY overrides if not a terminal
+        if !is_tty {
+            icons = config.when_not_tty.icons;
+            color = config.when_not_tty.color;
+            one_per_line = config.when_not_tty.one_per_line;
+        }
+
+        // 3. CLI overrides
+        if let Some(i) = cli.icons_overridden() {
+            icons = i;
+        }
+        if let Some(c) = cli.color_overridden() {
+            color = c;
+        }
+        if cli.classify {
+            classify = true;
+        }
+        if cli.no_git_ignore {
+            git_ignore = false;
+        }
+        if cli.one_per_line {
+            one_per_line = true;
+        }
+
+        Self {
+            icons,
+            color,
+            classify,
+            git_ignore,
+            one_per_line,
+        }
     }
 }

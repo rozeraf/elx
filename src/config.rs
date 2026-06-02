@@ -4,11 +4,14 @@ use std::path::PathBuf;
 use crate::display::long::Column;
 
 #[derive(Deserialize, Serialize, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct Config {
     #[serde(default = "default_true")]
     pub icons: bool,
     #[serde(default = "default_true")]
     pub color: bool,
+    #[serde(default = "default_true")]
+    pub git_ignore: bool,
     #[serde(default)]
     pub classify: bool,
     #[serde(default)]
@@ -22,6 +25,7 @@ impl Default for Config {
         Self {
             icons: true,
             color: true,
+            git_ignore: true,
             classify: false,
             long: LongConfig::default(),
             when_not_tty: WhenNotTty::default(),
@@ -30,6 +34,7 @@ impl Default for Config {
 }
 
 #[derive(Deserialize, Serialize, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct LongConfig {
     #[serde(default = "default_columns")]
     pub columns: Vec<Column>,
@@ -56,11 +61,12 @@ fn default_columns() -> Vec<Column> {
 }
 
 #[derive(Deserialize, Serialize, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct WhenNotTty {
-    #[serde(default = "default_true")]
-    pub no_icons: bool,
-    #[serde(default = "default_true")]
-    pub no_color: bool,
+    #[serde(default)]
+    pub icons: bool,
+    #[serde(default)]
+    pub color: bool,
     #[serde(default = "default_true")]
     pub one_per_line: bool,
 }
@@ -68,8 +74,8 @@ pub struct WhenNotTty {
 impl Default for WhenNotTty {
     fn default() -> Self {
         Self {
-            no_icons: true,
-            no_color: true,
+            icons: false,
+            color: false,
             one_per_line: true,
         }
     }

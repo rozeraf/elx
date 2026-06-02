@@ -26,16 +26,28 @@ pub struct Cli {
     pub depth: Option<usize>,
 
     /// Do not display icons
-    #[arg(long)]
+    #[arg(long, overrides_with = "icons")]
     pub no_icons: bool,
 
+    /// Display icons (overrides config)
+    #[arg(long, overrides_with = "no_icons", hide = true)]
+    pub icons: bool,
+
     /// Do not use colors in output
-    #[arg(long)]
+    #[arg(long, overrides_with = "color")]
     pub no_color: bool,
+
+    /// Use colors in output (overrides config)
+    #[arg(long, overrides_with = "no_color", hide = true)]
+    pub color: bool,
 
     /// Append indicator (one of /) to entries
     #[arg(short = 'F', long)]
     pub classify: bool,
+
+    /// Do not respect .gitignore files
+    #[arg(long)]
+    pub no_git_ignore: bool,
 
     /// Display one entry per line
     #[arg(short = '1', long = "one-per-line")]
@@ -44,4 +56,18 @@ pub struct Cli {
     /// Generate a default configuration file
     #[arg(long)]
     pub init_config: bool,
+}
+
+impl Cli {
+    pub fn icons_overridden(&self) -> Option<bool> {
+        if self.icons { Some(true) }
+        else if self.no_icons { Some(false) }
+        else { None }
+    }
+
+    pub fn color_overridden(&self) -> Option<bool> {
+        if self.color { Some(true) }
+        else if self.no_color { Some(false) }
+        else { None }
+    }
 }

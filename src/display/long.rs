@@ -1,13 +1,12 @@
 use crate::fs::entry::Entry;
 use crate::theme::Theme;
-use crate::cli::Cli;
+use crate::display::DisplayOptions;
 use std::os::unix::fs::PermissionsExt;
 use chrono::{DateTime, Local};
 use users::{get_user_by_uid, get_group_by_gid};
 use crossterm::style::{Color, Stylize};
 use unicode_width::UnicodeWidthStr;
 use std::collections::HashMap;
-
 use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -25,9 +24,8 @@ pub enum Column {
 pub struct LongView<'a> {
     entries: &'a [Entry],
     theme: &'a Theme,
-    args: &'a Cli,
+    options: &'a DisplayOptions,
     columns: Vec<Column>,
-    classify: bool,
 }
 
 struct Cell {
@@ -36,13 +34,12 @@ struct Cell {
 }
 
 impl<'a> LongView<'a> {
-    pub fn new(entries: &'a [Entry], theme: &'a Theme, args: &'a Cli, columns: Vec<Column>, classify: bool) -> Self {
+    pub fn new(entries: &'a [Entry], theme: &'a Theme, options: &'a DisplayOptions, columns: Vec<Column>) -> Self {
         Self {
             entries,
             theme,
-            args,
+            options,
             columns,
-            classify,
         }
     }
 
@@ -101,7 +98,7 @@ impl<'a> LongView<'a> {
         match col {
             Column::Permissions => {
                 let mode = metadata.permissions().mode();
-                let content = if self.args.no_color {
+                let content = if !self.options.color {
                     format_permissions(mode, metadata.is_dir())
                 } else {
                     format_permissions_colored(mode, metadata.is_dir())
@@ -135,7 +132,7 @@ impl<'a> LongView<'a> {
                     .unwrap_or_else(|| uid.to_string());
                 
                 let width = owner_name.len();
-                let content = if self.args.no_color {
+                let content = if !self.options.color {
                     owner_name
                 } else {
                     owner_name.with(Color::Yellow).to_string()
@@ -156,7 +153,7 @@ impl<'a> LongView<'a> {
                     .unwrap_or_else(|| gid.to_string());
                 
                 let width = group_name.len();
-                let content = if self.args.no_color {
+                let content = if !self.options.color {
                     group_name
                 } else {
                     group_name.with(Color::Yellow).to_string()
@@ -166,7 +163,7 @@ impl<'a> LongView<'a> {
             Column::Size => {
                 let size_text = format_size(metadata.len());
                 let width = size_text.len();
-                let content = if self.args.no_color {
+                let content = if !self.options.color {
                     size_text
                 } else {
                     size_text.with(Color::Green).to_string()
@@ -179,7 +176,7 @@ impl<'a> LongView<'a> {
                     .unwrap_or_else(|_| Local::now());
                 let date_str = modified.format("%b %d %H:%M").to_string();
                 let width = date_str.len();
-                let content = if self.args.no_color {
+                let content = if !self.options.color {
                     date_str
                 } else {
                     date_str.with(Color::Cyan).to_string()
@@ -187,7 +184,7 @@ impl<'a> LongView<'a> {
                 Cell { content, width }
             }
             Column::Name => {
-                let icon_str = if self.args.no_icons {
+                let icon_str = if !self.options.icons {
                     "".to_string()
                 } else {
                     self.theme.icons.get_icon(&entry.path, entry.metadata.is_dir())
@@ -200,18 +197,18 @@ impl<'a> LongView<'a> {
                     format!("{} ", icon_str)
                 };
 
-                let name = if self.args.no_color {
+                let name = if !self.options.color {
                     entry.name.clone()
                 } else {
                     self.theme.colors.colorize(&entry.name, &entry.metadata).to_string()
                 };
 
-                let suffix = if self.classify && entry.metadata.is_dir() { "/" } else { "" };
+                let suffix = if self.options.classify && entry.metadata.is_dir() { "/" } else { "" };
                 let suffix_width = suffix.len();
 
                 let target = if let Some(t) = &entry.link_target {
                     let target_name = t.display().to_string();
-                    if self.args.no_color {
+                    if !self.options.color {
                         format!(" -> {}", target_name)
                     } else {
                         format!(" -> {}", target_name.with(Color::Cyan))
