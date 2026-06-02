@@ -5,197 +5,237 @@ use std::os::unix::fs::PermissionsExt;
 use chrono::{DateTime, Local};
 use users::{get_user_by_uid, get_group_by_gid};
 use crossterm::style::{Color, Stylize};
+use unicode_width::UnicodeWidthStr;
+use std::collections::HashMap;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Column {
+    Permissions,
+    Links,
+    Owner,
+    Group,
+    Size,
+    Date,
+    Name,
+}
 
 pub struct LongView<'a> {
     entries: &'a [Entry],
     theme: &'a Theme,
     args: &'a Cli,
+    columns: Vec<Column>,
+}
+
+struct Cell {
+    content: String,
+    width: usize,
 }
 
 impl<'a> LongView<'a> {
     pub fn new(entries: &'a [Entry], theme: &'a Theme, args: &'a Cli) -> Self {
+        // TODO: Load from config
+        let columns = vec![
+            Column::Permissions,
+            Column::Links,
+            Column::Owner,
+            Column::Group,
+            Column::Size,
+            Column::Date,
+            Column::Name,
+        ];
+
         Self {
             entries,
             theme,
             args,
+            columns,
         }
     }
 
     pub fn render(&self) {
-        let mut rows = Vec::new();
+        let mut table: Vec<HashMap<Column, Cell>> = Vec::new();
+        let mut col_widths: HashMap<Column, usize> = HashMap::new();
 
         for entry in self.entries {
-            let metadata = &entry.metadata;
+            let mut row = HashMap::new();
             
-            // Permissions
-            let mode = metadata.permissions().mode();
-            let perms = if self.args.no_color {
-                format_permissions(mode, metadata.is_dir())
-            } else {
-                format_permissions_colored(mode, metadata.is_dir())
-            };
+            for col in &self.columns {
+                let cell = self.format_column(*col, entry);
+                let current_max = col_widths.entry(*col).or_insert(0);
+                *current_max = (*current_max).max(cell.width);
+                row.insert(*col, cell);
+            }
+            
+            table.push(row);
+        }
 
-            // Links
-            #[cfg(unix)]
-            let links_str = {
-                use std::os::unix::fs::MetadataExt;
-                metadata.nlink().to_string()
-            };
-            #[cfg(not(unix))]
-            let links_str = "1".to_string();
+        for row in table {
+            for (i, col) in self.columns.iter().enumerate() {
+                if let Some(cell) = row.get(col) {
+                    let width = col_widths[col];
+                    let is_last = i == self.columns.len() - 1;
+                    
+                    match col {
+                        Column::Permissions | Column::Date | Column::Name => {
+                            print!("{}", cell.content);
+                            if !is_last {
+                                print!("{} ", " ".repeat(width.saturating_sub(cell.width)));
+                            }
+                        }
+                        Column::Links | Column::Size => {
+                            print!("{}{}", " ".repeat(width.saturating_sub(cell.width)), cell.content);
+                            if !is_last {
+                                print!(" ");
+                            }
+                        }
+                        Column::Owner | Column::Group => {
+                            print!("{}", cell.content);
+                            if !is_last {
+                                print!("{} ", " ".repeat(width.saturating_sub(cell.width)));
+                            }
+                        }
+                    }
+                }
+            }
+            println!();
+        }
+    }
 
-            // Owner & Group
-            #[cfg(unix)]
-            let (owner_name, group_name) = {
-                use std::os::unix::fs::MetadataExt;
-                let uid = metadata.uid();
-                let gid = metadata.gid();
-                let u = get_user_by_uid(uid)
+    fn format_column(&self, col: Column, entry: &Entry) -> Cell {
+        let metadata = &entry.metadata;
+        
+        match col {
+            Column::Permissions => {
+                let mode = metadata.permissions().mode();
+                let content = if self.args.no_color {
+                    format_permissions(mode, metadata.is_dir())
+                } else {
+                    format_permissions_colored(mode, metadata.is_dir())
+                };
+                Cell { content, width: 10 }
+            }
+            Column::Links => {
+                #[cfg(unix)]
+                let nlink = {
+                    use std::os::unix::fs::MetadataExt;
+                    metadata.nlink()
+                };
+                #[cfg(not(unix))]
+                let nlink = 1;
+                
+                let content = nlink.to_string();
+                let width = content.len();
+                Cell { content, width }
+            }
+            Column::Owner => {
+                #[cfg(unix)]
+                let uid = {
+                    use std::os::unix::fs::MetadataExt;
+                    metadata.uid()
+                };
+                #[cfg(not(unix))]
+                let uid = 0;
+
+                let owner_name = get_user_by_uid(uid)
                     .map(|u| u.name().to_string_lossy().into_owned())
                     .unwrap_or_else(|| uid.to_string());
-                let g = get_group_by_gid(gid)
+                
+                let width = owner_name.len();
+                let content = if self.args.no_color {
+                    owner_name
+                } else {
+                    owner_name.with(Color::Yellow).to_string()
+                };
+                Cell { content, width }
+            }
+            Column::Group => {
+                #[cfg(unix)]
+                let gid = {
+                    use std::os::unix::fs::MetadataExt;
+                    metadata.gid()
+                };
+                #[cfg(not(unix))]
+                let gid = 0;
+
+                let group_name = get_group_by_gid(gid)
                     .map(|g| g.name().to_string_lossy().into_owned())
                     .unwrap_or_else(|| gid.to_string());
-                (u, g)
-            };
-            #[cfg(not(unix))]
-            let (owner_name, group_name) = ("user".to_string(), "group".to_string());
-
-            let owner = if self.args.no_color {
-                owner_name.clone()
-            } else {
-                owner_name.clone().with(Color::Yellow).to_string()
-            };
-
-            let group = if self.args.no_color {
-                group_name.clone()
-            } else {
-                group_name.clone().with(Color::Yellow).to_string()
-            };
-
-            // Size
-            let size_text = format_size(metadata.len());
-            let size = if self.args.no_color {
-                size_text.clone()
-            } else {
-                size_text.clone().with(Color::Green).to_string()
-            };
-
-            // Date
-            let modified: DateTime<Local> = metadata.modified()
-                .map(|t| t.into())
-                .unwrap_or_else(|_| Local::now());
-            let date_str = modified.format("%b %d %H:%M").to_string();
-            let date = if self.args.no_color {
-                date_str
-            } else {
-                date_str.with(Color::Cyan).to_string()
-            };
-
-            // Name & Icon
-            let icon = if self.args.no_icons {
-                "".to_string()
-            } else {
-                format!("{} ", self.theme.icons.get_icon(&entry.path, entry.metadata.is_dir()))
-            };
-
-            let name = if self.args.no_color {
-                entry.name.clone()
-            } else {
-                self.theme.colors.colorize(&entry.name, &entry.metadata).to_string()
-            };
-
-            let target = if let Some(t) = &entry.link_target {
-                let target_name = t.display().to_string();
-                if self.args.no_color {
-                    format!(" -> {}", target_name)
+                
+                let width = group_name.len();
+                let content = if self.args.no_color {
+                    group_name
                 } else {
-                    format!(" -> {}", target_name.with(Color::Cyan))
-                }
-            } else {
-                "".to_string()
-            };
-
-            rows.push(LongRow {
-                perms,
-                links: links_str.clone(),
-                owner,
-                group,
-                size,
-                date,
-                icon,
-                name,
-                target,
-                links_len: links_str.len(),
-                owner_len: owner_name.len(),
-                group_len: group_name.len(),
-                size_len: size_text.len(),
-            });
-        }
-
-        // Calculate column widths
-        let mut w_links = 0;
-        let mut w_owner = 0;
-        let mut w_group = 0;
-        let mut w_size = 0;
-
-        for row in &rows {
-            w_links = w_links.max(row.links_len);
-            w_owner = w_owner.max(row.owner_len);
-            w_group = w_group.max(row.group_len);
-            w_size = w_size.max(row.size_len);
-        }
-
-        for row in rows {
-            print!("{} ", row.perms);
-            
-            // Links: Right-aligned
-            print!("{:>width$} ", row.links, width = w_links);
-            
-            if self.args.no_color {
-                print!("{:<width$} ", row.owner, width = w_owner);
-                print!("{:<width$} ", row.group, width = w_group);
-                print!("{:>width$} ", row.size, width = w_size);
-            } else {
-                print!("{} ", pad_right_ansi(&row.owner, w_owner));
-                print!("{} ", pad_right_ansi(&row.group, w_group));
-                print!("{} ", pad_left_ansi(&row.size, w_size));
+                    group_name.with(Color::Yellow).to_string()
+                };
+                Cell { content, width }
             }
+            Column::Size => {
+                let size_text = format_size(metadata.len());
+                let width = size_text.len();
+                let content = if self.args.no_color {
+                    size_text
+                } else {
+                    size_text.with(Color::Green).to_string()
+                };
+                Cell { content, width }
+            }
+            Column::Date => {
+                let modified: DateTime<Local> = metadata.modified()
+                    .map(|t| t.into())
+                    .unwrap_or_else(|_| Local::now());
+                let date_str = modified.format("%b %d %H:%M").to_string();
+                let width = date_str.len();
+                let content = if self.args.no_color {
+                    date_str
+                } else {
+                    date_str.with(Color::Cyan).to_string()
+                };
+                Cell { content, width }
+            }
+            Column::Name => {
+                let icon_str = if self.args.no_icons {
+                    "".to_string()
+                } else {
+                    self.theme.icons.get_icon(&entry.path, entry.metadata.is_dir())
+                };
 
-            println!(
-                "{} {}{}{}",
-                row.date,
-                row.icon,
-                row.name,
-                row.target,
-            );
+                let icon_width = if icon_str.is_empty() { 0 } else { icon_str.width() + 1 };
+                let icon = if icon_str.is_empty() {
+                    "".to_string()
+                } else {
+                    format!("{} ", icon_str)
+                };
+
+                let name = if self.args.no_color {
+                    entry.name.clone()
+                } else {
+                    self.theme.colors.colorize(&entry.name, &entry.metadata).to_string()
+                };
+
+                let target = if let Some(t) = &entry.link_target {
+                    let target_name = t.display().to_string();
+                    if self.args.no_color {
+                        format!(" -> {}", target_name)
+                    } else {
+                        format!(" -> {}", target_name.with(Color::Cyan))
+                    }
+                } else {
+                    "".to_string()
+                };
+
+                let target_width = if let Some(t) = &entry.link_target {
+                    t.display().to_string().width() + 4
+                } else {
+                    0
+                };
+
+                Cell {
+                    content: format!("{}{}{}", icon, name, target),
+                    width: icon_width + entry.name.width() + target_width,
+                }
+            }
         }
     }
-}
-
-fn pad_left_ansi(s: &str, width: usize) -> String {
-    let actual_len = strip_ansi(s).len();
-    if actual_len >= width {
-        s.to_string()
-    } else {
-        format!("{}{}", " ".repeat(width - actual_len), s)
-    }
-}
-
-struct LongRow {
-    perms: String,
-    links: String,
-    owner: String,
-    group: String,
-    size: String,
-    date: String,
-    icon: String,
-    name: String,
-    target: String,
-    links_len: usize,
-    owner_len: usize,
-    group_len: usize,
-    size_len: usize,
 }
 
 fn format_permissions(mode: u32, is_dir: bool) -> String {
@@ -257,19 +297,5 @@ fn format_size(size: u64) -> String {
         format!("{:.0} {}", size, UNITS[unit_idx])
     } else {
         format!("{:.1} {}", size, UNITS[unit_idx])
-    }
-}
-
-fn strip_ansi(s: &str) -> String {
-    let re = regex::Regex::new(r"\x1B\[[0-9;]*[mK]").unwrap();
-    re.replace_all(s, "").to_string()
-}
-
-fn pad_right_ansi(s: &str, width: usize) -> String {
-    let actual_len = strip_ansi(s).len();
-    if actual_len >= width {
-        s.to_string()
-    } else {
-        format!("{}{}", s, " ".repeat(width - actual_len))
     }
 }

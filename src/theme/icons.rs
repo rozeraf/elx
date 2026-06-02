@@ -8,6 +8,15 @@ pub struct IconManager {
 
 impl IconManager {
     pub fn new() -> Self {
+        let (icons_by_name, icons_by_extension) = Self::default_mappings();
+
+        Self {
+            icons_by_name,
+            icons_by_extension,
+        }
+    }
+
+    fn default_mappings() -> (HashMap<String, String>, HashMap<String, String>) {
         let mut icons_by_name = HashMap::new();
         let mut icons_by_extension = HashMap::new();
 
@@ -26,10 +35,7 @@ impl IconManager {
         icons_by_extension.insert("json".to_string(), "\u{e60b}".to_string());
         icons_by_extension.insert("lock".to_string(), "\u{f023}".to_string());
 
-        Self {
-            icons_by_name,
-            icons_by_extension,
-        }
+        (icons_by_name, icons_by_extension)
     }
 
     pub fn get_icon(&self, path: &Path, is_dir: bool) -> String {

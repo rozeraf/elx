@@ -5,9 +5,9 @@ use std::fs::Metadata;
 pub struct Entry {
     #[allow(dead_code)]
     pub path: PathBuf,
-    #[allow(dead_code)]
     pub metadata: Metadata,
     pub name: String,
+    pub link_target: Option<PathBuf>,
 }
 
 impl Entry {
@@ -17,10 +17,17 @@ impl Entry {
             .map(|n| n.to_string_lossy().to_string())
             .unwrap_or_else(|| path.display().to_string());
         
+        let link_target = if metadata.file_type().is_symlink() {
+            std::fs::read_link(&path).ok()
+        } else {
+            None
+        };
+        
         Ok(Self {
             path,
             metadata,
             name,
+            link_target,
         })
     }
 }
