@@ -5,23 +5,31 @@ use std::path::PathBuf;
 #[command(name = "elx")]
 #[command(about = "A personal ls-clone in Rust", long_about = None)]
 pub struct Cli {
-    /// Directory to list
+    /// Путь к директории или файлу (по умолчанию текущая директория)
     #[arg(default_value = ".")]
     pub path: PathBuf,
 
-    /// Use long listing format
+    /// Использовать подробный формат вывода (права, владелец, размер, дата)
     #[arg(short = 'l', long)]
     pub long: bool,
 
-    /// Show hidden files
+    /// Показывать скрытые файлы (начинающиеся с точки)
     #[arg(short = 'a', long)]
     pub all: bool,
 
-    /// Recurse into directories as a tree
+    /// Отображать содержимое в виде дерева
     #[arg(short = 'T', long)]
     pub tree: bool,
 
-    /// Maximum depth for tree view
+    /// Максимальная глубина рекурсии для древовидного отображения
     #[arg(long)]
     pub depth: Option<usize>,
+
+    /// Не отображать иконки
+    #[arg(long)]
+    pub no_icons: bool,
+
+    /// Не использовать цвета в выводе
+    #[arg(long)]
+    pub no_color: bool,
 }

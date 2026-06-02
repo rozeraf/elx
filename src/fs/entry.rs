@@ -3,7 +3,9 @@ use std::fs::Metadata;
 
 #[derive(Debug)]
 pub struct Entry {
+    #[allow(dead_code)]
     pub path: PathBuf,
+    #[allow(dead_code)]
     pub metadata: Metadata,
     pub name: String,
 }
