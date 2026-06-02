@@ -46,10 +46,10 @@ pub fn render(options: GridOptions) -> String {
                     current_max = current_max.max(options.entries[idx].display_width);
                 }
             }
-            col_widths[col] = current_max + 2;
+            col_widths[col] = current_max;
         }
 
-        let total_grid_width: usize = col_widths.iter().sum::<usize>() - 2; 
+        let total_grid_width: usize = col_widths.iter().sum::<usize>() + 2 * (cols - 1);
         if total_grid_width <= options.terminal_width {
             return build_grid(&options.entries, rows, cols, &col_widths);
         }
@@ -74,7 +74,7 @@ fn build_grid(entries: &[GridEntry], rows: usize, cols: usize, col_widths: &[usi
                 output.push_str(&entry.display_name);
 
                 if col < cols - 1 && (col + 1) * rows + row < count {
-                    let padding = col_widths[col] - entry.display_width;
+                    let padding = (col_widths[col] + 2) - entry.display_width;
                     output.push_str(&" ".repeat(padding));
                 }
             }
