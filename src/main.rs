@@ -47,10 +47,7 @@ fn main() -> Result<()> {
     };
 
     let walker = Walker::new(&args.path, args.all, options.git_ignore, max_depth);
-    let mut entries = walker.collect()?;
-
-    // Sorting by name (already done in Walker for subdirs, doing for top level here)
-    entries.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    let entries = walker.collect()?;
 
     if args.tree {
         use display::tree::TreeView;

@@ -96,7 +96,10 @@ impl Config {
             .merge(Toml::file(config_path))
             .merge(Env::prefixed("ELX_"))
             .extract()
-            .unwrap_or_default()
+            .unwrap_or_else(|e| {
+                eprintln!("elx: config error: {}", e);
+                Config::default()
+            })
     }
 
     pub fn get_config_path() -> PathBuf {

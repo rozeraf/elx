@@ -32,7 +32,7 @@ impl<'a> TreeView<'a> {
         };
 
         let mut col_widths: HashMap<Column, usize> = HashMap::new();
-        if self.options.depth.is_some() || true { // For tree, we should probably always check or use defaults
+        if self.options.long_view {
             self.calculate_widths(&self.entries, &formatter, &mut col_widths);
         }
 
