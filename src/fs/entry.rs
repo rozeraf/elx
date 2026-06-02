@@ -3,11 +3,11 @@ use std::fs::Metadata;
 
 #[derive(Debug)]
 pub struct Entry {
-    #[allow(dead_code)]
     pub path: PathBuf,
     pub metadata: Metadata,
     pub name: String,
     pub link_target: Option<PathBuf>,
+    pub children: Option<Vec<Entry>>,
 }
 
 impl Entry {
@@ -28,6 +28,7 @@ impl Entry {
             metadata,
             name,
             link_target,
+            children: None,
         })
     }
 }

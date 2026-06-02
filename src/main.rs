@@ -40,13 +40,23 @@ fn main() -> Result<()> {
     }
 
     let theme = Theme::new();
-    let walker = Walker::new(&args.path, args.all, options.git_ignore);
+    let max_depth = if args.tree {
+        options.depth.unwrap_or(usize::MAX)
+    } else {
+        1
+    };
+
+    let walker = Walker::new(&args.path, args.all, options.git_ignore, max_depth);
     let mut entries = walker.collect()?;
 
-    // Basic sorting by name
+    // Sorting by name (already done in Walker for subdirs, doing for top level here)
     entries.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
 
-    if args.long {
+    if args.tree {
+        use display::tree::TreeView;
+        let view = TreeView::new(&entries, &theme, &options, config.long.columns);
+        view.render();
+    } else if args.long {
         let view = LongView::new(&entries, &theme, &options, config.long.columns);
         view.render();
     } else {
