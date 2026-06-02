@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use figment::{Figment, providers::{Format, Toml, Env}};
 use std::path::PathBuf;
-use crate::display::long::Column;
+use crate::display::Column;
 
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(deny_unknown_fields)]
@@ -15,6 +15,8 @@ pub struct Config {
     #[serde(default)]
     pub classify: bool,
     #[serde(default)]
+    pub depth: Option<usize>,
+    #[serde(default)]
     pub long: LongConfig,
     #[serde(default)]
     pub when_not_tty: WhenNotTty,
@@ -27,6 +29,7 @@ impl Default for Config {
             color: true,
             git_ignore: true,
             classify: false,
+            depth: None,
             long: LongConfig::default(),
             when_not_tty: WhenNotTty::default(),
         }
