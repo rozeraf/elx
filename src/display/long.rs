@@ -147,18 +147,19 @@ impl<'a> LongView<'a> {
         }
 
         for row in rows {
-            // All columns are left-aligned (padding on the right)
             print!("{} ", row.perms);
-            print!("{:<width$} ", row.links, width = w_links);
+            
+            // Links: Right-aligned
+            print!("{:>width$} ", row.links, width = w_links);
             
             if self.args.no_color {
                 print!("{:<width$} ", row.owner, width = w_owner);
                 print!("{:<width$} ", row.group, width = w_group);
-                print!("{:<width$} ", row.size, width = w_size);
+                print!("{:>width$} ", row.size, width = w_size);
             } else {
                 print!("{} ", pad_right_ansi(&row.owner, w_owner));
                 print!("{} ", pad_right_ansi(&row.group, w_group));
-                print!("{} ", pad_right_ansi(&row.size, w_size));
+                print!("{} ", pad_left_ansi(&row.size, w_size));
             }
 
             println!(
@@ -169,6 +170,15 @@ impl<'a> LongView<'a> {
                 row.target,
             );
         }
+    }
+}
+
+fn pad_left_ansi(s: &str, width: usize) -> String {
+    let actual_len = strip_ansi(s).len();
+    if actual_len >= width {
+        s.to_string()
+    } else {
+        format!("{}{}", " ".repeat(width - actual_len), s)
     }
 }
 
@@ -244,9 +254,9 @@ fn format_size(size: u64) -> String {
         unit_idx += 1;
     }
     if unit_idx == 0 {
-        format!("{:.0}{}", size, UNITS[unit_idx])
+        format!("{:.0} {}", size, UNITS[unit_idx])
     } else {
-        format!("{:.1}{}", size, UNITS[unit_idx])
+        format!("{:.1} {}", size, UNITS[unit_idx])
     }
 }
 
