@@ -14,9 +14,25 @@ use display::grid::{GridOptions, GridEntry, render};
 use display::long::LongView;
 use display::get_terminal_width;
 use unicode_width::UnicodeWidthStr;
+use std::io::IsTerminal;
+use config::Config;
 
 fn main() -> Result<()> {
-    let args = Cli::parse();
+    let mut args = Cli::parse();
+    let config = Config::load();
+
+    // TTY detection and overrides
+    if !std::io::stdout().is_terminal() {
+        if config.when_not_tty.no_icons {
+            args.no_icons = true;
+        }
+        if config.when_not_tty.no_color {
+            args.no_color = true;
+        }
+        if config.when_not_tty.one_per_line {
+            args.one_per_line = true;
+        }
+    }
 
     if !args.path.exists() {
         anyhow::bail!("elx: cannot access '{}': No such file or directory", args.path.display());
@@ -62,6 +78,7 @@ fn main() -> Result<()> {
         let output = render(GridOptions {
             terminal_width,
             entries: grid_entries,
+            one_per_line: args.one_per_line,
         });
         print!("{}", output);
     }

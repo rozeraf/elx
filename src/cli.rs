@@ -32,4 +32,8 @@ pub struct Cli {
     /// Do not use colors in output
     #[arg(long)]
     pub no_color: bool,
+
+    /// Display one entry per line
+    #[arg(short = '1', long = "one-per-line")]
+    pub one_per_line: bool,
 }

@@ -1,6 +1,7 @@
 pub struct GridOptions {
     pub terminal_width: usize,
     pub entries: Vec<GridEntry>,
+    pub one_per_line: bool,
 }
 
 pub struct GridEntry {
@@ -12,6 +13,13 @@ pub fn render(options: GridOptions) -> String {
     let count = options.entries.len();
     if count == 0 {
         return String::new();
+    }
+
+    if options.one_per_line {
+        return options.entries.iter()
+            .map(|e| e.display_name.clone())
+            .collect::<Vec<_>>()
+            .join("\n") + "\n";
     }
 
     // 1. Try single line
@@ -97,6 +105,7 @@ mod tests {
                 display_name: "file1".to_string(),
                 display_width: 5,
             }],
+            one_per_line: false,
         };
         assert_eq!(render(options), "file1\n");
     }
@@ -112,6 +121,7 @@ mod tests {
         let options = GridOptions {
             terminal_width: 10,
             entries,
+            one_per_line: false,
         };
         assert_eq!(render(options), "f1  f2  f3\n");
     }
@@ -131,6 +141,7 @@ mod tests {
         let options = GridOptions {
             terminal_width: 17,
             entries,
+            one_per_line: false,
         };
         let expected = "long_name  medium\ns          f4\n";
         assert_eq!(render(options), expected);
@@ -151,8 +162,23 @@ mod tests {
         let options = GridOptions {
             terminal_width: 5,
             entries,
+            one_per_line: false,
         };
         let expected = "a  d\nb  e\nc\n";
         assert_eq!(render(options), expected);
+    }
+
+    #[test]
+    fn test_one_per_line() {
+        let entries = vec![
+            GridEntry { display_name: "a".to_string(), display_width: 1 },
+            GridEntry { display_name: "b".to_string(), display_width: 1 },
+        ];
+        let options = GridOptions {
+            terminal_width: 80,
+            entries,
+            one_per_line: true,
+        };
+        assert_eq!(render(options), "a\nb\n");
     }
 }
