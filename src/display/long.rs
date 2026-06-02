@@ -27,6 +27,7 @@ pub struct LongView<'a> {
     theme: &'a Theme,
     args: &'a Cli,
     columns: Vec<Column>,
+    classify: bool,
 }
 
 struct Cell {
@@ -35,12 +36,13 @@ struct Cell {
 }
 
 impl<'a> LongView<'a> {
-    pub fn new(entries: &'a [Entry], theme: &'a Theme, args: &'a Cli, columns: Vec<Column>) -> Self {
+    pub fn new(entries: &'a [Entry], theme: &'a Theme, args: &'a Cli, columns: Vec<Column>, classify: bool) -> Self {
         Self {
             entries,
             theme,
             args,
             columns,
+            classify,
         }
     }
 
@@ -204,6 +206,9 @@ impl<'a> LongView<'a> {
                     self.theme.colors.colorize(&entry.name, &entry.metadata).to_string()
                 };
 
+                let suffix = if self.classify && entry.metadata.is_dir() { "/" } else { "" };
+                let suffix_width = suffix.len();
+
                 let target = if let Some(t) = &entry.link_target {
                     let target_name = t.display().to_string();
                     if self.args.no_color {
@@ -222,8 +227,8 @@ impl<'a> LongView<'a> {
                 };
 
                 Cell {
-                    content: format!("{}{}{}", icon, name, target),
-                    width: icon_width + entry.name.width() + target_width,
+                    content: format!("{}{}{}{}", icon, name, suffix, target),
+                    width: icon_width + entry.name.width() + suffix_width + target_width,
                 }
             }
         }

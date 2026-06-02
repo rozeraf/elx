@@ -3,12 +3,30 @@ use figment::{Figment, providers::{Format, Toml, Env}};
 use std::path::PathBuf;
 use crate::display::long::Column;
 
-#[derive(Deserialize, Serialize, Debug, Default)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct Config {
+    #[serde(default = "default_true")]
+    pub icons: bool,
+    #[serde(default = "default_true")]
+    pub color: bool,
+    #[serde(default)]
+    pub classify: bool,
     #[serde(default)]
     pub long: LongConfig,
     #[serde(default)]
     pub when_not_tty: WhenNotTty,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            icons: true,
+            color: true,
+            classify: false,
+            long: LongConfig::default(),
+            when_not_tty: WhenNotTty::default(),
+        }
+    }
 }
 
 #[derive(Deserialize, Serialize, Debug)]

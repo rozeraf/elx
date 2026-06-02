@@ -33,6 +33,10 @@ pub struct Cli {
     #[arg(long)]
     pub no_color: bool,
 
+    /// Append indicator (one of /) to entries
+    #[arg(short = 'F', long)]
+    pub classify: bool,
+
     /// Display one entry per line
     #[arg(short = '1', long = "one-per-line")]
     pub one_per_line: bool,

@@ -33,6 +33,17 @@ fn main() -> Result<()> {
         return Ok(());
     }
 
+    // Apply global config defaults if not overridden by CLI flags
+    if !config.icons {
+        args.no_icons = true;
+    }
+    if !config.color {
+        args.no_color = true;
+    }
+    if config.classify {
+        args.classify = true;
+    }
+
     // TTY detection and overrides
     if !std::io::stdout().is_terminal() {
         if config.when_not_tty.no_icons {
@@ -55,7 +66,7 @@ fn main() -> Result<()> {
     let entries = walker.collect()?;
 
     if args.long {
-        let view = LongView::new(&entries, &theme, &args, config.long.columns);
+        let view = LongView::new(&entries, &theme, &args, config.long.columns, args.classify);
         view.render();
     } else {
         let terminal_width = get_terminal_width();
@@ -67,8 +78,7 @@ fn main() -> Result<()> {
             };
 
             let icon_width = if icon_str.is_empty() { 0 } else { icon_str.width() + 1 };
-            let display_width = icon_width + entry.name.width();
-
+            
             let icon = if icon_str.is_empty() {
                 "".to_string()
             } else {
@@ -81,9 +91,12 @@ fn main() -> Result<()> {
                 theme.colors.colorize(&entry.name, &entry.metadata).to_string()
             };
 
+            let suffix = if args.classify && entry.metadata.is_dir() { "/" } else { "" };
+            let suffix_width = suffix.len();
+
             GridEntry {
-                display_name: format!("{}{}", icon, name),
-                display_width,
+                display_name: format!("{}{}{}", icon, name, suffix),
+                display_width: icon_width + entry.name.width() + suffix_width,
             }
         }).collect();
 
