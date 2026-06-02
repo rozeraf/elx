@@ -20,7 +20,6 @@ fn main() -> Result<()> {
     let walker = Walker::new(&args.path, args.all);
     let entries = walker.collect()?;
 
-    // В будущем здесь будет логика выбора Display режима (Grid, Long, Tree)
     for entry in entries {
         println!("{}", entry.name);
     }

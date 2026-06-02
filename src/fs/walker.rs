@@ -19,11 +19,10 @@ impl Walker {
     pub fn collect(&self) -> Result<Vec<Entry>> {
         let mut entries = Vec::new();
         
-        // Используем WalkBuilder для автоматической поддержки .gitignore
         let walker = WalkBuilder::new(&self.path)
             .hidden(!self.show_hidden)
             .git_ignore(true)
-            .max_depth(Some(1)) // Для начала только текущая директория
+            .max_depth(Some(1))
             .build();
 
         for result in walker {
@@ -31,7 +30,6 @@ impl Walker {
                 Ok(ignore_entry) => {
                     let path = ignore_entry.path().to_path_buf();
                     
-                    // Пропускаем саму корневую директорию
                     if path == self.path {
                         continue;
                     }
