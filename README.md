@@ -12,13 +12,17 @@ While tools like `eza` and `lsd` are excellent, they often come with trade-offs:
 
 `elx` aims to solve these by providing a layered configuration system and deep integration with tools like `ignore` (used in ripgrep) and `gix`.
 
-## Key Features (MVP)
+## Key Features
 
 - **Display Modes:** Grid (default), Long (`-l`), and Tree (`-T`).
-- **Git Status:** Integrated file status (`M`, `A`, `?`, `!`) powered by `gix`.
-- **Smart Ignoring:** Respects `.gitignore` and custom glob patterns via the `ignore` crate.
+- **Tree Mode:** Recursive directory visualization with configurable depth (`--depth`).
+- **Metadata:** Integrated metadata display (permissions, owner, size, date) in both Long and Tree views.
+- **Git Status:** Integrated file status (`M`, `A`, `?`, `!`) powered by `gix` (Coming Soon).
+- **Smart Ignoring:** Respects `.gitignore` by default via the `ignore` crate.
 - **Rich Visuals:** Nerd Font icons and color-coded output by file type.
-- **Layered Config:** Configuration via `config.toml`, environment variables, and CLI flags.
+- **Layered Config:** Robust configuration via `config.toml`, environment variables, and CLI flags.
+- **Auto-Config:** Easy setup with `--init-config` to generate a default configuration file.
+- **Classify:** Automatic indicator (`/`) for directories via `-F` or config.
 
 ## Architecture
 
@@ -37,24 +41,33 @@ elx/
 
 ## Development Roadmap
 
-### Phase 1: Skeleton (Current)
+### Phase 1: Skeleton (Completed)
 - [x] Project initialization and dependency setup.
-- [ ] Basic CLI with `clap`.
-- [ ] Directory listing implementation.
+- [x] Basic CLI with `clap`.
+- [x] Directory listing implementation.
 
-### Phase 2: Core Views
-- [ ] Grid view with column alignment.
-- [ ] Long view with metadata (permissions, owner, size, date).
-- [ ] Nerd Font icons and basic coloring.
+### Phase 2: Core Views (Completed)
+- [x] Grid view with variable column alignment.
+- [x] Long view with metadata (permissions, owner, size, date).
+- [x] Nerd Font icons and terminal-aware coloring.
+- [x] Case-insensitive sorting by name.
 
-### Phase 3: Advanced Features
-- [ ] Tree view implementation.
-- [ ] Full `.gitignore` support.
-- [ ] Git status enrichment.
+### Phase 3: Advanced Features (Completed)
+- [x] Tree view implementation with recursive traversal.
+- [x] Configurable depth control (`--depth`).
+- [x] Integrated metadata formatting in Tree view (`-Tl`).
+- [x] Directory classification (`-F/--classify`).
 
-### Phase 4: Configuration
-- [ ] Figment-based configuration system.
-- [ ] `~/.config/elx/config.toml` support.
+### Phase 4: Git Integration (In Progress)
+- [ ] Connect `gix` for Git repository detection.
+- [ ] Implement file status enrichment (`M`, `A`, `?`, `!`).
+- [ ] Display Git status in Long and Tree views.
+
+### Phase 5: Configuration (Completed)
+- [x] Figment-based layered configuration system.
+- [x] XDG-compliant config path (`~/.config/elx/config.toml`).
+- [x] TTY detection with automatic overrides for pipes and redirects.
+- [x] Default config generation via `--init-config`.
 
 ## Installation
 
