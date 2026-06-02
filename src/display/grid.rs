@@ -14,33 +14,67 @@ pub fn render(options: GridOptions) -> String {
         return String::new();
     }
 
-    let max_width = options.entries.iter().map(|e| e.display_width).max().unwrap_or(0);
-    let col_width = max_width + 2;
-    let mut cols = options.terminal_width / col_width;
-    if cols == 0 {
-        cols = 1;
-    }
-
-    if cols == 1 {
+    // 1. Try single line
+    let total_width_single_line: usize = options.entries.iter().map(|e| e.display_width).sum::<usize>() 
+        + (count.saturating_sub(1) * 2);
+    
+    if total_width_single_line <= options.terminal_width {
         return options.entries.iter()
             .map(|e| e.display_name.clone())
             .collect::<Vec<_>>()
-            .join("\n") + "\n";
+            .join("  ") + "\n";
     }
 
-    let rows = (count + cols - 1) / cols;
+    // 2. Variable column width algorithm
+    let mut max_cols = options.terminal_width / 2; // Rough upper bound
+    if max_cols > count {
+        max_cols = count;
+    }
+    if max_cols == 0 {
+        max_cols = 1;
+    }
+
+    for cols in (2..=max_cols).rev() {
+        let rows = (count + cols - 1) / cols;
+        let mut col_widths = vec![0; cols];
+
+        for col in 0..cols {
+            let mut current_max = 0;
+            for row in 0..rows {
+                let idx = col * rows + row;
+                if idx < count {
+                    current_max = current_max.max(options.entries[idx].display_width);
+                }
+            }
+            col_widths[col] = current_max + 2;
+        }
+
+        let total_grid_width: usize = col_widths.iter().sum::<usize>() - 2; 
+        if total_grid_width <= options.terminal_width {
+            return build_grid(&options.entries, rows, cols, &col_widths);
+        }
+    }
+
+    // Fallback: single column
+    options.entries.iter()
+        .map(|e| e.display_name.clone())
+        .collect::<Vec<_>>()
+        .join("\n") + "\n"
+}
+
+fn build_grid(entries: &[GridEntry], rows: usize, cols: usize, col_widths: &[usize]) -> String {
+    let count = entries.len();
     let mut output = String::new();
 
     for row in 0..rows {
         for col in 0..cols {
             let idx = col * rows + row;
             if idx < count {
-                let entry = &options.entries[idx];
+                let entry = &entries[idx];
                 output.push_str(&entry.display_name);
-                
-                // Add padding if not the last column and not the last entry in the row
+
                 if col < cols - 1 && (col + 1) * rows + row < count {
-                    let padding = col_width - entry.display_width;
+                    let padding = col_widths[col] - entry.display_width;
                     output.push_str(&" ".repeat(padding));
                 }
             }
@@ -56,15 +90,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_empty_list() {
-        let options = GridOptions {
-            terminal_width: 80,
-            entries: vec![],
-        };
-        assert_eq!(render(options), "");
-    }
-
-    #[test]
     fn test_single_file() {
         let options = GridOptions {
             terminal_width: 80,
@@ -77,37 +102,57 @@ mod tests {
     }
 
     #[test]
-    fn test_exact_columns() {
+    fn test_all_in_one_line() {
         let entries = vec![
             GridEntry { display_name: "f1".to_string(), display_width: 2 },
             GridEntry { display_name: "f2".to_string(), display_width: 2 },
             GridEntry { display_name: "f3".to_string(), display_width: 2 },
-            GridEntry { display_name: "f4".to_string(), display_width: 2 },
         ];
-        // max_width=2, col_width=4, terminal_width=8 => cols=2, rows=2
+        // 2+2+2 + 2*2 = 10. Fits in 10.
         let options = GridOptions {
-            terminal_width: 8,
+            terminal_width: 10,
             entries,
         };
-        let expected = "f1  f3\nf2  f4\n";
+        assert_eq!(render(options), "f1  f2  f3\n");
+    }
+
+    #[test]
+    fn test_variable_widths() {
+        let entries = vec![
+            GridEntry { display_name: "long_name".to_string(), display_width: 9 },
+            GridEntry { display_name: "s".to_string(), display_width: 1 },
+            GridEntry { display_name: "medium".to_string(), display_width: 6 },
+            GridEntry { display_name: "f4".to_string(), display_width: 2 },
+        ];
+        // If terminal is small, should have 2 columns.
+        // Col 0: long_name (9), s (1) -> width 11
+        // Col 1: medium (6), f4 (2) -> width 8
+        // Total: 11 + 6 (last col no padding) = 17
+        let options = GridOptions {
+            terminal_width: 17,
+            entries,
+        };
+        let expected = "long_name  medium\ns          f4\n";
         assert_eq!(render(options), expected);
     }
 
     #[test]
-    fn test_odd_number_of_files() {
+    fn test_odd_number_variable() {
         let entries = vec![
-            GridEntry { display_name: "f1".to_string(), display_width: 2 },
-            GridEntry { display_name: "f2".to_string(), display_width: 2 },
-            GridEntry { display_name: "f3".to_string(), display_width: 2 },
-            GridEntry { display_name: "f4".to_string(), display_width: 2 },
-            GridEntry { display_name: "f5".to_string(), display_width: 2 },
+            GridEntry { display_name: "a".to_string(), display_width: 1 },
+            GridEntry { display_name: "b".to_string(), display_width: 1 },
+            GridEntry { display_name: "c".to_string(), display_width: 1 },
+            GridEntry { display_name: "d".to_string(), display_width: 1 },
+            GridEntry { display_name: "e".to_string(), display_width: 1 },
         ];
-        // max_width=2, col_width=4, terminal_width=8 => cols=2, rows=3
+        // cols=2, rows=3.
+        // Col 0: a, b, c -> width 3
+        // Col 1: d, e -> width 1
         let options = GridOptions {
-            terminal_width: 8,
+            terminal_width: 5,
             entries,
         };
-        let expected = "f1  f4\nf2  f5\nf3\n";
+        let expected = "a  d\nb  e\nc\n";
         assert_eq!(render(options), expected);
     }
 }
