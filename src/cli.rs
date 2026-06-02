@@ -36,4 +36,8 @@ pub struct Cli {
     /// Display one entry per line
     #[arg(short = '1', long = "one-per-line")]
     pub one_per_line: bool,
+
+    /// Generate a default configuration file
+    #[arg(long)]
+    pub init_config: bool,
 }

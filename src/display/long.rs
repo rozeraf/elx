@@ -8,7 +8,10 @@ use crossterm::style::{Color, Stylize};
 use unicode_width::UnicodeWidthStr;
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+use serde::{Serialize, Deserialize};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Column {
     Permissions,
     Links,
@@ -32,18 +35,7 @@ struct Cell {
 }
 
 impl<'a> LongView<'a> {
-    pub fn new(entries: &'a [Entry], theme: &'a Theme, args: &'a Cli) -> Self {
-        // TODO: Load from config
-        let columns = vec![
-            Column::Permissions,
-            Column::Links,
-            Column::Owner,
-            Column::Group,
-            Column::Size,
-            Column::Date,
-            Column::Name,
-        ];
-
+    pub fn new(entries: &'a [Entry], theme: &'a Theme, args: &'a Cli, columns: Vec<Column>) -> Self {
         Self {
             entries,
             theme,

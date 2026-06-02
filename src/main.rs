@@ -21,6 +21,18 @@ fn main() -> Result<()> {
     let mut args = Cli::parse();
     let config = Config::load();
 
+    if args.init_config {
+        let config_path = Config::get_config_path();
+        if let Some(parent) = config_path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        
+        let toml_string = toml::to_string_pretty(&Config::default())?;
+        std::fs::write(&config_path, toml_string)?;
+        println!("Default configuration written to: {}", config_path.display());
+        return Ok(());
+    }
+
     // TTY detection and overrides
     if !std::io::stdout().is_terminal() {
         if config.when_not_tty.no_icons {
@@ -43,7 +55,7 @@ fn main() -> Result<()> {
     let entries = walker.collect()?;
 
     if args.long {
-        let view = LongView::new(&entries, &theme, &args);
+        let view = LongView::new(&entries, &theme, &args, config.long.columns);
         view.render();
     } else {
         let terminal_width = get_terminal_width();
