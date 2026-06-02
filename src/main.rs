@@ -11,6 +11,7 @@ use anyhow::Result;
 use fs::walker::Walker;
 use theme::Theme;
 use display::grid::{GridOptions, GridEntry, render};
+use display::long::LongView;
 use display::get_terminal_width;
 use unicode_width::UnicodeWidthStr;
 
@@ -26,10 +27,8 @@ fn main() -> Result<()> {
     let entries = walker.collect()?;
 
     if args.long {
-        // Long view placeholder
-        for entry in &entries {
-            println!("{}", entry.name);
-        }
+        let view = LongView::new(&entries, &theme, &args);
+        view.render();
     } else {
         let terminal_width = get_terminal_width();
         let grid_entries: Vec<GridEntry> = entries.iter().map(|entry| {
