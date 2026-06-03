@@ -3,13 +3,13 @@ use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[command(name = "elx")]
-#[command(about = "A personal ls-clone in Rust", long_about = None)]
+#[command(about = "A personal ls-clone in Rust with Git integration and Tree view", long_about = None)]
 pub struct Cli {
     /// Path to the directory or file
     #[arg(default_value = ".")]
     pub path: PathBuf,
 
-    /// Use long listing format
+    /// Use long listing format (includes Git status)
     #[arg(short = 'l', long)]
     pub long: bool,
 

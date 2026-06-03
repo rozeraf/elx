@@ -17,7 +17,7 @@ While tools like `eza` and `lsd` are excellent, they often come with trade-offs:
 - **Display Modes:** Grid (default), Long (`-l`), and Tree (`-T`).
 - **Tree Mode:** Recursive directory visualization with configurable depth (`--depth`).
 - **Metadata:** Integrated metadata display (permissions, owner, size, date) in both Long and Tree views.
-- **Git Status:** Integrated file status (`M`, `A`, `?`, `!`) powered by `gix` (Coming Soon).
+- **Git Status:** Integrated file status (`M`, `A`, `D`, `?`, `!`) powered by `gix`.
 - **Smart Ignoring:** Respects `.gitignore` by default via the `ignore` crate.
 - **Rich Visuals:** Nerd Font icons and color-coded output by file type.
 - **Layered Config:** Robust configuration via `config.toml`, environment variables, and CLI flags.
@@ -58,10 +58,10 @@ elx/
 - [x] Integrated metadata formatting in Tree view (`-Tl`).
 - [x] Directory classification (`-F/--classify`).
 
-### Phase 4: Git Integration (In Progress)
-- [ ] Connect `gix` for Git repository detection.
-- [ ] Implement file status enrichment (`M`, `A`, `?`, `!`).
-- [ ] Display Git status in Long and Tree views.
+### Phase 4: Git Integration (Completed)
+- [x] Connect `gix` for Git repository detection.
+- [x] Implement file status enrichment (`M`, `A`, `D`, `?`, `!`).
+- [x] Display Git status in Long and Tree views.
 
 ### Phase 5: Configuration (Completed)
 - [x] Figment-based layered configuration system.
