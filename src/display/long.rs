@@ -8,15 +8,17 @@ pub struct LongView<'a> {
     theme: &'a Theme,
     options: &'a DisplayOptions,
     columns: Vec<Column>,
+    headers: bool,
 }
 
 impl<'a> LongView<'a> {
-    pub fn new(entries: &'a [Entry], theme: &'a Theme, options: &'a DisplayOptions, columns: Vec<Column>) -> Self {
+    pub fn new(entries: &'a [Entry], theme: &'a Theme, options: &'a DisplayOptions, columns: Vec<Column>, headers: bool) -> Self {
         Self {
             entries,
             theme,
             options,
             columns,
+            headers,
         }
     }
 
@@ -40,6 +42,47 @@ impl<'a> LongView<'a> {
             }
             
             table.push(row);
+        }
+
+        if self.headers {
+            for (i, col) in self.columns.iter().enumerate() {
+                let header = match col {
+                    Column::Git => "Git",
+                    Column::Permissions => "Mode",
+                    Column::Links => "Link",
+                    Column::Owner => "User",
+                    Column::Group => "Group",
+                    Column::Size => "Size",
+                    Column::Date => "Date",
+                    Column::Name => "Name",
+                };
+                
+                let width = col_widths[col];
+                let is_last = i == self.columns.len() - 1;
+                
+                let content = if self.options.color {
+                    use crossterm::style::Stylize;
+                    header.underlined().to_string()
+                } else {
+                    header.to_string()
+                };
+
+                match col {
+                    Column::Links | Column::Size => {
+                        print!("{}{}", " ".repeat(width.saturating_sub(header.len())), content);
+                    }
+                    _ => {
+                        print!("{}", content);
+                        if !is_last {
+                            print!("{}", " ".repeat(width.saturating_sub(header.len())));
+                        }
+                    }
+                }
+                if !is_last {
+                    print!(" ");
+                }
+            }
+            println!();
         }
 
         for row in table {

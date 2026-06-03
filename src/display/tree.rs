@@ -13,15 +13,17 @@ pub struct TreeView<'a> {
     theme: &'a Theme,
     options: &'a DisplayOptions,
     columns: Vec<Column>,
+    headers: bool,
 }
 
 impl<'a> TreeView<'a> {
-    pub fn new(entries: &'a [Entry], theme: &'a Theme, options: &'a DisplayOptions, columns: Vec<Column>) -> Self {
+    pub fn new(entries: &'a [Entry], theme: &'a Theme, options: &'a DisplayOptions, columns: Vec<Column>, headers: bool) -> Self {
         Self {
             entries,
             theme,
             options,
             columns,
+            headers,
         }
     }
 
@@ -34,6 +36,43 @@ impl<'a> TreeView<'a> {
         let mut col_widths: HashMap<Column, usize> = HashMap::new();
         if self.options.long_view {
             self.calculate_widths(&self.entries, &formatter, &mut col_widths);
+        }
+
+        if self.headers && self.options.long_view {
+            for col in &self.columns {
+                if *col == Column::Name { continue; }
+                let header = match col {
+                    Column::Git => "Git",
+                    Column::Permissions => "Mode",
+                    Column::Links => "Link",
+                    Column::Owner => "User",
+                    Column::Group => "Group",
+                    Column::Size => "Size",
+                    Column::Date => "Date",
+                    _ => "",
+                };
+                
+                let width = col_widths[col];
+                
+                let content = if self.options.color {
+                    use crossterm::style::Stylize;
+                    header.underlined().to_string()
+                } else {
+                    header.to_string()
+                };
+
+                match col {
+                    Column::Links | Column::Size => {
+                        print!("{}{}", " ".repeat(width.saturating_sub(header.len())), content);
+                    }
+                    _ => {
+                        print!("{}", content);
+                        print!("{}", " ".repeat(width.saturating_sub(header.len())));
+                    }
+                }
+                print!(" ");
+            }
+            println!();
         }
 
         for (i, entry) in self.entries.iter().enumerate() {

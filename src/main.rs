@@ -27,8 +27,7 @@ fn main() -> Result<()> {
             std::fs::create_dir_all(parent)?;
         }
         
-        let toml_string = toml::to_string_pretty(&Config::default())?;
-        std::fs::write(&config_path, toml_string)?;
+        std::fs::write(&config_path, Config::get_default_config_template())?;
         println!("Default configuration written to: {}", config_path.display());
         return Ok(());
     }
@@ -51,10 +50,10 @@ fn main() -> Result<()> {
 
     if args.tree {
         use display::tree::TreeView;
-        let view = TreeView::new(&entries, &theme, &options, config.long.columns);
+        let view = TreeView::new(&entries, &theme, &options, config.long.columns, config.long.headers);
         view.render();
     } else if args.long {
-        let view = LongView::new(&entries, &theme, &options, config.long.columns);
+        let view = LongView::new(&entries, &theme, &options, config.long.columns, config.long.headers);
         view.render();
     } else {
         let terminal_width = get_terminal_width();

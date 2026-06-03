@@ -41,12 +41,15 @@ impl Default for Config {
 pub struct LongConfig {
     #[serde(default = "default_columns")]
     pub columns: Vec<Column>,
+    #[serde(default)]
+    pub headers: bool,
 }
 
 impl Default for LongConfig {
     fn default() -> Self {
         Self {
             columns: default_columns(),
+            headers: false,
         }
     }
 }
@@ -107,5 +110,48 @@ impl Config {
         dirs::config_dir()
             .map(|d| d.join("elx").join("config.toml"))
             .unwrap_or_else(|| PathBuf::from("config.toml"))
+    }
+
+    pub fn get_default_config_template() -> &'static str {
+        r#"# elx configuration file
+
+# Display icons next to file names (requires Nerd Font)
+icons = true
+
+# Use colors in output
+color = true
+
+# Respect .gitignore files
+git_ignore = true
+
+# Append indicator (one of /) to directories
+classify = false
+
+# Default recursion depth for tree view (uncomment to set)
+# depth = 3
+
+[long]
+# Display column headers in long listing format
+headers = true
+
+# Columns to display in long listing format.
+# Available columns: git, permissions, links, owner, group, size, date, name
+columns = [
+    "git",
+    "permissions",
+    "links",
+    "owner",
+    "group",
+    "size",
+    "date",
+    "name",
+]
+
+[when_not_tty]
+# Configuration for when output is redirected (e.g., to a file or pipe)
+icons = false
+color = false
+one_per_line = true
+"#
     }
 }
