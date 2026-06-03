@@ -35,6 +35,21 @@ impl<'a> TreeView<'a> {
 
         let mut col_widths: HashMap<Column, usize> = HashMap::new();
         if self.options.long_view {
+            // Initialize with header lengths
+            for col in &self.columns {
+                if *col == Column::Name { continue; }
+                let header_len = match col {
+                    Column::Git => 3,
+                    Column::Permissions => 4,
+                    Column::Links => 4,
+                    Column::Owner => 4,
+                    Column::Group => 5,
+                    Column::Size => 4,
+                    Column::Date => 4,
+                    _ => 0,
+                };
+                col_widths.insert(*col, header_len);
+            }
             self.calculate_widths(&self.entries, &formatter, &mut col_widths);
         }
 

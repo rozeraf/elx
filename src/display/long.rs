@@ -31,6 +31,20 @@ impl<'a> LongView<'a> {
         let mut table: Vec<HashMap<Column, Cell>> = Vec::new();
         let mut col_widths: HashMap<Column, usize> = HashMap::new();
 
+        for col in &self.columns {
+            let header_len = match col {
+                Column::Git => 3,
+                Column::Permissions => 4,
+                Column::Links => 4,
+                Column::Owner => 4,
+                Column::Group => 5,
+                Column::Size => 4,
+                Column::Date => 4,
+                Column::Name => 4,
+            };
+            col_widths.insert(*col, header_len);
+        }
+
         for entry in self.entries {
             let mut row = HashMap::new();
             
