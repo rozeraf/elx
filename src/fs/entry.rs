@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 use std::fs::Metadata;
 
+use crate::git::GitStatus;
+
 #[derive(Debug)]
 pub struct Entry {
     pub path: PathBuf,
@@ -8,6 +10,7 @@ pub struct Entry {
     pub name: String,
     pub link_target: Option<PathBuf>,
     pub children: Option<Vec<Entry>>,
+    pub git_status: Option<GitStatus>,
 }
 
 impl Entry {
@@ -29,6 +32,7 @@ impl Entry {
             name,
             link_target,
             children: None,
+            git_status: None,
         })
     }
 }

@@ -53,6 +53,7 @@ impl Default for LongConfig {
 
 fn default_columns() -> Vec<Column> {
     vec![
+        Column::Git,
         Column::Permissions,
         Column::Links,
         Column::Owner,

@@ -49,7 +49,7 @@ impl<'a> LongView<'a> {
                     let is_last = i == self.columns.len() - 1;
                     
                     match col {
-                        Column::Permissions | Column::Date | Column::Name => {
+                        Column::Permissions | Column::Date | Column::Name | Column::Git => {
                             print!("{}", cell.content);
                             if !is_last {
                                 print!("{} ", " ".repeat(width.saturating_sub(cell.width)));

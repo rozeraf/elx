@@ -64,7 +64,7 @@ impl<'a> TreeView<'a> {
                 if let Some(&width) = widths.get(col) {
                     let cell = formatter.format_column(*col, entry);
                     match col {
-                        Column::Permissions | Column::Date => {
+                        Column::Permissions | Column::Date | Column::Git => {
                             print!("{} ", cell.content);
                             print!("{}", " ".repeat(width.saturating_sub(cell.width)));
                         }

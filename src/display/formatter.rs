@@ -1,6 +1,7 @@
 use crate::fs::entry::Entry;
 use crate::theme::Theme;
 use crate::display::DisplayOptions;
+use crate::git::GitStatus;
 use std::os::unix::fs::PermissionsExt;
 use chrono::{DateTime, Local};
 use users::{get_user_by_uid, get_group_by_gid};
@@ -18,6 +19,7 @@ pub enum Column {
     Size,
     Date,
     Name,
+    Git,
 }
 
 pub struct Cell {
@@ -121,6 +123,23 @@ impl<'a> ColumnFormatter<'a> {
                     date_str.with(Color::Cyan).to_string()
                 };
                 Cell { content, width }
+            }
+            Column::Git => {
+                let (symbol, color) = match entry.git_status {
+                    Some(GitStatus::Modified) => ("M", Color::Yellow),
+                    Some(GitStatus::Added) => ("A", Color::Green),
+                    Some(GitStatus::Deleted) => ("D", Color::Red),
+                    Some(GitStatus::Untracked) => ("?", Color::Blue),
+                    Some(GitStatus::Ignored) => ("!", Color::Grey),
+                    _ => (" ", Color::Reset),
+                };
+                
+                let content = if self.options.color && color != Color::Reset {
+                    symbol.with(color).to_string()
+                } else {
+                    symbol.to_string()
+                };
+                Cell { content, width: 1 }
             }
             Column::Name => {
                 let icon_str = if !self.options.icons {
