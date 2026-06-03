@@ -50,10 +50,10 @@ fn main() -> Result<()> {
 
     if args.tree {
         use display::tree::TreeView;
-        let view = TreeView::new(&entries, &theme, &options, config.long.columns, config.long.headers);
+        let view = TreeView::new(&entries, &theme, &options, config.long.columns, config.long.headers, config.long.autohide_columns);
         view.render();
     } else if args.long {
-        let view = LongView::new(&entries, &theme, &options, config.long.columns, config.long.headers);
+        let view = LongView::new(&entries, &theme, &options, config.long.columns, config.long.headers, config.long.autohide_columns);
         view.render();
     } else {
         let terminal_width = get_terminal_width();

@@ -14,16 +14,18 @@ pub struct TreeView<'a> {
     options: &'a DisplayOptions,
     columns: Vec<Column>,
     headers: bool,
+    autohide_columns: bool,
 }
 
 impl<'a> TreeView<'a> {
-    pub fn new(entries: &'a [Entry], theme: &'a Theme, options: &'a DisplayOptions, columns: Vec<Column>, headers: bool) -> Self {
+    pub fn new(entries: &'a [Entry], theme: &'a Theme, options: &'a DisplayOptions, columns: Vec<Column>, headers: bool, autohide_columns: bool) -> Self {
         Self {
             entries,
             theme,
             options,
             columns,
             headers,
+            autohide_columns,
         }
     }
 
@@ -33,10 +35,22 @@ impl<'a> TreeView<'a> {
             options: self.options,
         };
 
+        let mut active_columns = self.columns.clone();
+        if self.autohide_columns {
+            let mut empty_columns = std::collections::HashSet::new();
+            for col in &self.columns {
+                if *col == Column::Name { continue; }
+                if self.is_column_empty(self.entries, *col) {
+                    empty_columns.insert(*col);
+                }
+            }
+            active_columns.retain(|c| !empty_columns.contains(c));
+        }
+
         let mut col_widths: HashMap<Column, usize> = HashMap::new();
         if self.options.long_view {
             // Initialize with header lengths
-            for col in &self.columns {
+            for col in &active_columns {
                 if *col == Column::Name { continue; }
                 let header_len = match col {
                     Column::Git => 3,
@@ -50,11 +64,11 @@ impl<'a> TreeView<'a> {
                 };
                 col_widths.insert(*col, header_len);
             }
-            self.calculate_widths(&self.entries, &formatter, &mut col_widths);
+            self.calculate_widths(&self.entries, &formatter, &mut col_widths, &active_columns);
         }
 
         if self.headers && self.options.long_view {
-            for col in &self.columns {
+            for col in &active_columns {
                 if *col == Column::Name { continue; }
                 let header = match col {
                     Column::Git => "Git",
@@ -92,28 +106,43 @@ impl<'a> TreeView<'a> {
 
         for (i, entry) in self.entries.iter().enumerate() {
             let is_last = i == self.entries.len() - 1;
-            self.render_entry(entry, "", is_last, &formatter, &col_widths);
+            self.render_entry(entry, "", is_last, &formatter, &col_widths, &active_columns);
         }
     }
 
-    fn calculate_widths(&self, entries: &[Entry], formatter: &ColumnFormatter, widths: &mut HashMap<Column, usize>) {
+    fn is_column_empty(&self, entries: &[Entry], col: Column) -> bool {
         for entry in entries {
-            for col in &self.columns {
+            match col {
+                Column::Git => {
+                    if entry.git_status.is_some() { return false; }
+                }
+                _ => return false,
+            }
+            if let Some(children) = &entry.children {
+                if !self.is_column_empty(children, col) { return false; }
+            }
+        }
+        true
+    }
+
+    fn calculate_widths(&self, entries: &[Entry], formatter: &ColumnFormatter, widths: &mut HashMap<Column, usize>, active_columns: &[Column]) {
+        for entry in entries {
+            for col in active_columns {
                 if *col == Column::Name { continue; }
                 let cell = formatter.format_column(*col, entry);
                 let current_max = widths.entry(*col).or_insert(0);
                 *current_max = (*current_max).max(cell.width);
             }
             if let Some(children) = &entry.children {
-                self.calculate_widths(children, formatter, widths);
+                self.calculate_widths(children, formatter, widths, active_columns);
             }
         }
     }
 
-    fn render_entry(&self, entry: &Entry, prefix: &str, is_last: bool, formatter: &ColumnFormatter, widths: &HashMap<Column, usize>) {
+    fn render_entry(&self, entry: &Entry, prefix: &str, is_last: bool, formatter: &ColumnFormatter, widths: &HashMap<Column, usize>, active_columns: &[Column]) {
         // 1. Render Metadata (if enabled)
         if self.options.long_view {
-             for col in &self.columns {
+             for col in active_columns {
                 if *col == Column::Name { continue; }
                 if let Some(&width) = widths.get(col) {
                     let cell = formatter.format_column(*col, entry);
@@ -164,7 +193,7 @@ impl<'a> TreeView<'a> {
             };
             for (i, child) in children.iter().enumerate() {
                 let is_last_child = i == children.len() - 1;
-                self.render_entry(child, &next_prefix, is_last_child, formatter, widths);
+                self.render_entry(child, &next_prefix, is_last_child, formatter, widths, active_columns);
             }
         }
     }

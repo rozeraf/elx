@@ -9,16 +9,18 @@ pub struct LongView<'a> {
     options: &'a DisplayOptions,
     columns: Vec<Column>,
     headers: bool,
+    autohide_columns: bool,
 }
 
 impl<'a> LongView<'a> {
-    pub fn new(entries: &'a [Entry], theme: &'a Theme, options: &'a DisplayOptions, columns: Vec<Column>, headers: bool) -> Self {
+    pub fn new(entries: &'a [Entry], theme: &'a Theme, options: &'a DisplayOptions, columns: Vec<Column>, headers: bool, autohide_columns: bool) -> Self {
         Self {
             entries,
             theme,
             options,
             columns,
             headers,
+            autohide_columns,
         }
     }
 
@@ -30,8 +32,35 @@ impl<'a> LongView<'a> {
 
         let mut table: Vec<HashMap<Column, Cell>> = Vec::new();
         let mut col_widths: HashMap<Column, usize> = HashMap::new();
+        let mut active_columns = self.columns.clone();
 
-        for col in &self.columns {
+        if self.autohide_columns {
+            let mut empty_columns = std::collections::HashSet::new();
+            for col in &self.columns {
+                let mut all_empty = true;
+                for entry in self.entries {
+                    match col {
+                        Column::Git => {
+                            if entry.git_status.is_some() {
+                                all_empty = false;
+                                break;
+                            }
+                        }
+                        // Other columns are generally never "empty" in a way that warrants hiding
+                        _ => {
+                            all_empty = false;
+                            break;
+                        }
+                    }
+                }
+                if all_empty {
+                    empty_columns.insert(*col);
+                }
+            }
+            active_columns.retain(|c| !empty_columns.contains(c));
+        }
+
+        for col in &active_columns {
             let header_len = match col {
                 Column::Git => 3,
                 Column::Permissions => 4,
@@ -48,7 +77,7 @@ impl<'a> LongView<'a> {
         for entry in self.entries {
             let mut row = HashMap::new();
             
-            for col in &self.columns {
+            for col in &active_columns {
                 let cell = formatter.format_column(*col, entry);
                 let current_max = col_widths.entry(*col).or_insert(0);
                 *current_max = (*current_max).max(cell.width);
@@ -59,7 +88,7 @@ impl<'a> LongView<'a> {
         }
 
         if self.headers {
-            for (i, col) in self.columns.iter().enumerate() {
+            for (i, col) in active_columns.iter().enumerate() {
                 let header = match col {
                     Column::Git => "Git",
                     Column::Permissions => "Mode",
@@ -72,7 +101,7 @@ impl<'a> LongView<'a> {
                 };
                 
                 let width = col_widths[col];
-                let is_last = i == self.columns.len() - 1;
+                let is_last = i == active_columns.len() - 1;
                 
                 let content = if self.options.color {
                     use crossterm::style::Stylize;
@@ -100,10 +129,10 @@ impl<'a> LongView<'a> {
         }
 
         for row in table {
-            for (i, col) in self.columns.iter().enumerate() {
+            for (i, col) in active_columns.iter().enumerate() {
                 if let Some(cell) = row.get(col) {
                     let width = col_widths[col];
-                    let is_last = i == self.columns.len() - 1;
+                    let is_last = i == active_columns.len() - 1;
                     
                     match col {
                         Column::Permissions | Column::Date | Column::Name | Column::Git => {

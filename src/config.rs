@@ -43,6 +43,8 @@ pub struct LongConfig {
     pub columns: Vec<Column>,
     #[serde(default)]
     pub headers: bool,
+    #[serde(default)]
+    pub autohide_columns: bool,
 }
 
 impl Default for LongConfig {
@@ -50,6 +52,7 @@ impl Default for LongConfig {
         Self {
             columns: default_columns(),
             headers: false,
+            autohide_columns: false,
         }
     }
 }
@@ -133,6 +136,9 @@ classify = false
 [long]
 # Display column headers in long listing format
 headers = true
+
+# Automatically hide columns that are empty for all shown entries (e.g., Git column if no changes)
+autohide_columns = true
 
 # Columns to display in long listing format.
 # Available columns: git, permissions, links, owner, group, size, date, name
