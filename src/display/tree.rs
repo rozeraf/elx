@@ -99,7 +99,7 @@ impl<'a> TreeView<'a> {
 
         let suffix = if self.options.classify && entry.metadata.is_dir() { "/" } else { "" };
 
-        println!("{}{} {}{}{}{}", prefix, branch, HORIZONTAL, icon, name, suffix);
+        println!("{}{}{}{} {}{}{}", prefix, branch, HORIZONTAL, HORIZONTAL, icon, name, suffix);
 
         // 3. Render Children
         if let Some(children) = &entry.children {
