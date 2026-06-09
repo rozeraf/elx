@@ -186,12 +186,35 @@ impl<'a> ColumnFormatter<'a> {
                 };
 
                 let content = format!("{}{}{}{}", icon, name, suffix, target);
-                let content = if self.options.hyperlinks {
-                    let uri = format!("file://{}", entry.abs_path.display());
-                    wrap_hyperlink(&uri, &content)
+
+                let is_dir = entry.metadata.is_dir();
+                let is_symlink = entry.metadata.file_type().is_symlink();
+                let is_file = entry.metadata.is_file();
+
+                let should_link = self.options.hyperlinks.enabled && match () {
+                    _ if is_symlink => self.options.hyperlinks.symlinks,
+                    _ if is_dir => self.options.hyperlinks.directories,
+                    _ if is_file => self.options.hyperlinks.files,
+                    _ => false,
+                };
+
+                let should_underline = match () {
+                    _ if is_symlink => self.options.hyperlinks.underline_symlinks,
+                    _ if is_dir => self.options.hyperlinks.underline_directories,
+                    _ if is_file => self.options.hyperlinks.underline_files,
+                    _ => false,
+                };
+
+                let mut content = if should_underline {
+                    content.underlined().to_string()
                 } else {
                     content
                 };
+
+                if should_link {
+                    let uri = format!("file://{}", entry.abs_path.display());
+                    content = wrap_hyperlink(&uri, &content);
+                }
 
                 Cell {
                     content,

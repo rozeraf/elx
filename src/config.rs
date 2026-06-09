@@ -3,6 +3,42 @@ use figment::{Figment, providers::{Format, Toml, Env}};
 use std::path::PathBuf;
 use crate::display::Column;
 
+#[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
+pub struct HyperlinkConfig {
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+    #[serde(default = "default_true")]
+    pub files: bool,
+    #[serde(default = "default_true")]
+    pub directories: bool,
+    #[serde(default = "default_true")]
+    pub symlinks: bool,
+    #[serde(default)]
+    pub underline_files: bool,
+    #[serde(default)]
+    pub underline_directories: bool,
+    #[serde(default)]
+    pub underline_symlinks: bool,
+    #[serde(default)]
+    pub exclude_env: Vec<String>,
+}
+
+impl Default for HyperlinkConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            files: true,
+            directories: true,
+            symlinks: true,
+            underline_files: false,
+            underline_directories: false,
+            underline_symlinks: false,
+            exclude_env: Vec::new(),
+        }
+    }
+}
+
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
@@ -10,8 +46,8 @@ pub struct Config {
     pub icons: bool,
     #[serde(default = "default_true")]
     pub color: bool,
-    #[serde(default = "default_true")]
-    pub hyperlinks: bool,
+    #[serde(default)]
+    pub hyperlinks: HyperlinkConfig,
     #[serde(default = "default_true")]
     pub git_ignore: bool,
     #[serde(default)]
@@ -29,7 +65,7 @@ impl Default for Config {
         Self {
             icons: true,
             color: true,
-            hyperlinks: true,
+            hyperlinks: HyperlinkConfig::default(),
             git_ignore: true,
             classify: false,
             depth: None,
@@ -130,9 +166,6 @@ icons = true
 # Use colors in output
 color = true
 
-# Enable clickable hyperlinks in supported terminals (OSC 8)
-hyperlinks = true
-
 # Respect .gitignore files
 git_ignore = true
 
@@ -141,6 +174,24 @@ classify = false
 
 # Default recursion depth for tree view (uncomment to set)
 # depth = 3
+
+[hyperlinks]
+# Enable clickable hyperlinks in supported terminals (OSC 8)
+enabled = true
+
+# Enable hyperlinks for specific types
+files = true
+directories = true
+symlinks = true
+
+# Visually underline (ANSI underline) entries that are links
+underline_files = false
+underline_directories = false
+underline_symlinks = false
+
+# Disable hyperlinks if any of these environment variables are set
+# Example: exclude_env = ["KITTY_WINDOW_ID"] to avoid issues in Kitty
+exclude_env = []
 
 [long]
 # Display column headers in long listing format

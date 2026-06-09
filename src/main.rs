@@ -94,13 +94,37 @@ fn render_entries(entries: Vec<fs::entry::Entry>, args: &Cli, config: &Config, o
             let suffix_width = suffix.len();
 
             let display_name = format!("{}{}{}", icon, name, suffix);
-            let display_name = if options.hyperlinks {
-                use display::formatter::wrap_hyperlink;
-                let uri = format!("file://{}", entry.abs_path.display());
-                wrap_hyperlink(&uri, &display_name)
+
+            let is_dir = entry.metadata.is_dir();
+            let is_symlink = entry.metadata.file_type().is_symlink();
+            let is_file = entry.metadata.is_file();
+
+            let should_link = options.hyperlinks.enabled && match () {
+                _ if is_symlink => options.hyperlinks.symlinks,
+                _ if is_dir => options.hyperlinks.directories,
+                _ if is_file => options.hyperlinks.files,
+                _ => false,
+            };
+
+            let should_underline = match () {
+                _ if is_symlink => options.hyperlinks.underline_symlinks,
+                _ if is_dir => options.hyperlinks.underline_directories,
+                _ if is_file => options.hyperlinks.underline_files,
+                _ => false,
+            };
+
+            let mut display_name = if should_underline {
+                use crossterm::style::Stylize;
+                display_name.underlined().to_string()
             } else {
                 display_name
             };
+
+            if should_link {
+                use display::formatter::wrap_hyperlink;
+                let uri = format!("file://{}", entry.abs_path.display());
+                display_name = wrap_hyperlink(&uri, &display_name);
+            }
 
             GridEntry {
                 display_name,

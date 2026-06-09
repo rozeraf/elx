@@ -6,7 +6,7 @@ pub mod formatter;
 pub use formatter::{Column, Cell, ColumnFormatter};
 
 use terminal_size::{terminal_size, Width};
-use crate::config::Config;
+use crate::config::{Config, HyperlinkConfig};
 use crate::cli::Cli;
 use std::io::{stdout, IsTerminal};
 
@@ -22,7 +22,7 @@ pub fn get_terminal_width() -> usize {
 pub struct DisplayOptions {
     pub icons: bool,
     pub color: bool,
-    pub hyperlinks: bool,
+    pub hyperlinks: HyperlinkConfig,
     pub classify: bool,
     pub git_ignore: bool,
     pub one_per_line: bool,
@@ -37,7 +37,7 @@ impl DisplayOptions {
         // 1. Start with global config
         let mut icons = config.icons;
         let mut color = config.color;
-        let mut hyperlinks = config.hyperlinks;
+        let mut hyperlinks = config.hyperlinks.clone();
         let mut classify = config.classify;
         let mut git_ignore = config.git_ignore;
         let mut depth = config.depth;
@@ -48,11 +48,19 @@ impl DisplayOptions {
         if !is_tty {
             icons = config.when_not_tty.icons;
             color = config.when_not_tty.color;
-            hyperlinks = config.when_not_tty.hyperlinks;
+            hyperlinks.enabled = config.when_not_tty.hyperlinks;
             one_per_line = config.when_not_tty.one_per_line;
         }
 
-        // 3. CLI overrides
+        // 3. Exclude by environment variables
+        for env_var in &hyperlinks.exclude_env {
+            if std::env::var_os(env_var).is_some() {
+                hyperlinks.enabled = false;
+                break;
+            }
+        }
+
+        // 4. CLI overrides
         if let Some(i) = cli.icons_overridden() {
             icons = i;
         }
@@ -60,7 +68,7 @@ impl DisplayOptions {
             color = c;
         }
         if let Some(h) = cli.hyperlinks_overridden() {
-            hyperlinks = h;
+            hyperlinks.enabled = h;
         }
         if cli.classify {
             classify = true;
