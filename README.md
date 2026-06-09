@@ -18,11 +18,46 @@ While tools like `eza` and `lsd` are excellent, they often come with trade-offs:
 - **Tree Mode:** Recursive directory visualization with configurable depth (`--depth`).
 - **Metadata:** Integrated metadata display (permissions, owner, size, date) in both Long and Tree views.
 - **Git Status:** Integrated file status (`M`, `A`, `D`, `?`, `!`) powered by `gix`.
+- **Terminal Hyperlinks (OSC 8):** Clickable file names in supported terminals with granular control.
 - **Smart Ignoring:** Respects `.gitignore` by default via the `ignore` crate.
 - **Rich Visuals:** Nerd Font icons and color-coded output by file type.
 - **Layered Config:** Robust configuration via `config.toml`, environment variables, and CLI flags.
 - **Auto-Config:** Easy setup with `--init-config` to generate a default configuration file.
 - **Classify:** Automatic indicator (`/`) for directories via `-F` or config.
+
+## Configuration
+
+`elx` uses a layered configuration system. You can generate a default config file using:
+
+```bash
+elx --init-config
+```
+
+The config file is located at `~/.config/elx/config.toml`.
+
+### Hyperlinks (OSC 8)
+
+One of the unique features of `elx` is the highly configurable support for terminal hyperlinks. You can control exactly what becomes a link and how it looks:
+
+```toml
+[hyperlinks]
+# Global toggle
+enabled = true
+
+# Toggle links for specific entry types
+files = true
+directories = true
+symlinks = true
+
+# Visually underline entries that are clickable (ANSI underline)
+underline_files = true
+underline_directories = false
+underline_symlinks = true
+
+# Automatically disable hyperlinks if specific environment variables are set
+# (Useful for terminals with buggy or unwanted hyperlink behavior)
+exclude_env = ["KITTY_WINDOW_ID", "SOME_OTHER_VAR"]
+```
 
 ## Architecture
 
