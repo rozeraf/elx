@@ -32,13 +32,19 @@ fn main() -> Result<()> {
         return Ok(());
     }
 
-    let options = DisplayOptions::new(&config, &args);
-
-    if !args.path.exists() {
+    if !args.path.exists() && !args.path.is_symlink() {
         anyhow::bail!("elx: cannot access '{}': No such file or directory", args.path.display());
     }
 
+    let options = DisplayOptions::new(&config, &args);
     let theme = Theme::new();
+
+    if args.path.is_file() || (args.path.is_symlink() && !args.path.is_dir()) {
+        let entry = fs::entry::Entry::from_path(args.path.clone())?;
+        render_entries(vec![entry], &args, &config, &options, &theme);
+        return Ok(());
+    }
+
     let max_depth = if args.tree {
         options.depth.unwrap_or(usize::MAX)
     } else {
@@ -48,12 +54,18 @@ fn main() -> Result<()> {
     let walker = Walker::new(&args.path, args.all, options.git_ignore, max_depth);
     let entries = walker.collect()?;
 
+    render_entries(entries, &args, &config, &options, &theme);
+
+    Ok(())
+}
+
+fn render_entries(entries: Vec<fs::entry::Entry>, args: &Cli, config: &Config, options: &DisplayOptions, theme: &Theme) {
     if args.tree {
         use display::tree::TreeView;
-        let view = TreeView::new(&entries, &theme, &options, config.long.columns, config.long.headers, config.long.autohide_columns);
+        let view = TreeView::new(&entries, theme, options, config.long.columns.clone(), config.long.headers, config.long.autohide_columns);
         view.render();
     } else if args.long {
-        let view = LongView::new(&entries, &theme, &options, config.long.columns, config.long.headers, config.long.autohide_columns);
+        let view = LongView::new(&entries, theme, options, config.long.columns.clone(), config.long.headers, config.long.autohide_columns);
         view.render();
     } else {
         let terminal_width = get_terminal_width();
@@ -94,6 +106,4 @@ fn main() -> Result<()> {
         });
         print!("{}", output);
     }
-
-    Ok(())
 }
