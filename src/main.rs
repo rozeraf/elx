@@ -93,8 +93,17 @@ fn render_entries(entries: Vec<fs::entry::Entry>, args: &Cli, config: &Config, o
             let suffix = if options.classify && entry.metadata.is_dir() { "/" } else { "" };
             let suffix_width = suffix.len();
 
+            let display_name = format!("{}{}{}", icon, name, suffix);
+            let display_name = if options.hyperlinks {
+                use display::formatter::wrap_hyperlink;
+                let uri = format!("file://{}", entry.abs_path.display());
+                wrap_hyperlink(&uri, &display_name)
+            } else {
+                display_name
+            };
+
             GridEntry {
-                display_name: format!("{}{}{}", icon, name, suffix),
+                display_name,
                 display_width: icon_width + entry.name.width() + suffix_width,
             }
         }).collect();

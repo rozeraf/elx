@@ -6,6 +6,7 @@ use crate::git::GitStatus;
 #[derive(Debug)]
 pub struct Entry {
     pub path: PathBuf,
+    pub abs_path: PathBuf,
     pub metadata: Metadata,
     pub name: String,
     pub link_target: Option<PathBuf>,
@@ -20,6 +21,8 @@ impl Entry {
             .map(|n| n.to_string_lossy().to_string())
             .unwrap_or_else(|| path.display().to_string());
         
+        let abs_path = path.canonicalize().unwrap_or_else(|_| path.clone());
+
         let link_target = if metadata.file_type().is_symlink() {
             std::fs::read_link(&path).ok()
         } else {
@@ -28,6 +31,7 @@ impl Entry {
         
         Ok(Self {
             path,
+            abs_path,
             metadata,
             name,
             link_target,

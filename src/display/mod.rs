@@ -22,6 +22,7 @@ pub fn get_terminal_width() -> usize {
 pub struct DisplayOptions {
     pub icons: bool,
     pub color: bool,
+    pub hyperlinks: bool,
     pub classify: bool,
     pub git_ignore: bool,
     pub one_per_line: bool,
@@ -36,6 +37,7 @@ impl DisplayOptions {
         // 1. Start with global config
         let mut icons = config.icons;
         let mut color = config.color;
+        let mut hyperlinks = config.hyperlinks;
         let mut classify = config.classify;
         let mut git_ignore = config.git_ignore;
         let mut depth = config.depth;
@@ -46,6 +48,7 @@ impl DisplayOptions {
         if !is_tty {
             icons = config.when_not_tty.icons;
             color = config.when_not_tty.color;
+            hyperlinks = config.when_not_tty.hyperlinks;
             one_per_line = config.when_not_tty.one_per_line;
         }
 
@@ -55,6 +58,9 @@ impl DisplayOptions {
         }
         if let Some(c) = cli.color_overridden() {
             color = c;
+        }
+        if let Some(h) = cli.hyperlinks_overridden() {
+            hyperlinks = h;
         }
         if cli.classify {
             classify = true;
@@ -72,6 +78,7 @@ impl DisplayOptions {
         Self {
             icons,
             color,
+            hyperlinks,
             classify,
             git_ignore,
             one_per_line,

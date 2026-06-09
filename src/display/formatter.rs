@@ -22,6 +22,10 @@ pub enum Column {
     Git,
 }
 
+pub fn wrap_hyperlink(uri: &str, text: &str) -> String {
+    format!("\x1b]8;;{}\x1b\\{}\x1b]8;;\x1b\\", uri, text)
+}
+
 pub struct Cell {
     pub content: String,
     pub width: usize,
@@ -181,8 +185,16 @@ impl<'a> ColumnFormatter<'a> {
                     0
                 };
 
+                let content = format!("{}{}{}{}", icon, name, suffix, target);
+                let content = if self.options.hyperlinks {
+                    let uri = format!("file://{}", entry.abs_path.display());
+                    wrap_hyperlink(&uri, &content)
+                } else {
+                    content
+                };
+
                 Cell {
-                    content: format!("{}{}{}{}", icon, name, suffix, target),
+                    content,
                     width: icon_width + entry.name.width() + suffix_width + target_width,
                 }
             }

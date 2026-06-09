@@ -41,6 +41,14 @@ pub struct Cli {
     #[arg(long, overrides_with = "no_color", hide = true)]
     pub color: bool,
 
+    /// Do not use hyperlinks in output
+    #[arg(long, overrides_with = "hyperlinks")]
+    pub no_hyperlinks: bool,
+
+    /// Use hyperlinks in output (overrides config)
+    #[arg(long, overrides_with = "no_hyperlinks", hide = true)]
+    pub hyperlinks: bool,
+
     /// Append indicator (one of /) to entries
     #[arg(short = 'F', long)]
     pub classify: bool,
@@ -68,6 +76,12 @@ impl Cli {
     pub fn color_overridden(&self) -> Option<bool> {
         if self.color { Some(true) }
         else if self.no_color { Some(false) }
+        else { None }
+    }
+
+    pub fn hyperlinks_overridden(&self) -> Option<bool> {
+        if self.hyperlinks { Some(true) }
+        else if self.no_hyperlinks { Some(false) }
         else { None }
     }
 }

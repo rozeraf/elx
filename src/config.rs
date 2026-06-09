@@ -11,6 +11,8 @@ pub struct Config {
     #[serde(default = "default_true")]
     pub color: bool,
     #[serde(default = "default_true")]
+    pub hyperlinks: bool,
+    #[serde(default = "default_true")]
     pub git_ignore: bool,
     #[serde(default)]
     pub classify: bool,
@@ -27,6 +29,7 @@ impl Default for Config {
         Self {
             icons: true,
             color: true,
+            hyperlinks: true,
             git_ignore: true,
             classify: false,
             depth: None,
@@ -77,6 +80,8 @@ pub struct WhenNotTty {
     pub icons: bool,
     #[serde(default)]
     pub color: bool,
+    #[serde(default)]
+    pub hyperlinks: bool,
     #[serde(default = "default_true")]
     pub one_per_line: bool,
 }
@@ -86,6 +91,7 @@ impl Default for WhenNotTty {
         Self {
             icons: false,
             color: false,
+            hyperlinks: false,
             one_per_line: true,
         }
     }
@@ -124,6 +130,9 @@ icons = true
 # Use colors in output
 color = true
 
+# Enable clickable hyperlinks in supported terminals (OSC 8)
+hyperlinks = true
+
 # Respect .gitignore files
 git_ignore = true
 
@@ -157,6 +166,7 @@ columns = [
 # Configuration for when output is redirected (e.g., to a file or pipe)
 icons = false
 color = false
+hyperlinks = false
 one_per_line = true
 "#
     }
