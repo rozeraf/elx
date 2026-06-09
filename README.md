@@ -19,11 +19,25 @@ While tools like `eza` and `lsd` are excellent, they often come with trade-offs:
 - **Metadata:** Integrated metadata display (permissions, owner, size, date) in both Long and Tree views.
 - **Git Status:** Integrated file status (`M`, `A`, `D`, `?`, `!`) powered by `gix`.
 - **Terminal Hyperlinks (OSC 8):** Clickable file names in supported terminals with granular control.
-- **Smart Ignoring:** Respects `.gitignore` by default via the `ignore` crate.
+- **Smart Ignoring:** Respects `.gitignore` by default and supports custom glob patterns via `--ignore`.
 - **Rich Visuals:** Nerd Font icons and color-coded output by file type.
 - **Layered Config:** Robust configuration via `config.toml`, environment variables, and CLI flags.
 - **Auto-Config:** Easy setup with `--init-config` to generate a default configuration file.
 - **Classify:** Automatic indicator (`/`) for directories via `-F` or config.
+
+## Filtering
+
+`elx` provides powerful filtering capabilities:
+
+- **Git Ignore:** Enabled by default, can be disabled with `--no-git-ignore`.
+- **Custom Patterns:** Use the `--ignore` flag to skip files or directories using glob patterns. Multiple patterns can be separated by commas.
+  ```bash
+  elx --ignore "*.json,node_modules,target"
+  ```
+- **Persistent Ignore:** Patterns can also be defined in your `config.toml`:
+  ```toml
+  ignore = ["*.tmp", ".cache", "bin"]
+  ```
 
 ## Configuration
 
