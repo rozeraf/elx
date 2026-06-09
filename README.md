@@ -71,10 +71,8 @@ elx/
 
 ## Installation
 
-*Note: `elx` is currently in early development.*
-
 ```bash
-cargo install --path .
+make install
 ```
 
 ## Requirements
