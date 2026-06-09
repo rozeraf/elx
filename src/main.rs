@@ -51,7 +51,7 @@ fn main() -> Result<()> {
         1
     };
 
-    let walker = Walker::new(&args.path, args.all, options.git_ignore, max_depth);
+    let walker = Walker::new(&args.path, args.all, options.git_ignore, max_depth, options.ignore_globs.clone());
     let entries = walker.collect()?;
 
     render_entries(entries, &args, &config, &options, &theme);

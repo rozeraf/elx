@@ -51,6 +51,8 @@ pub struct Config {
     #[serde(default = "default_true")]
     pub git_ignore: bool,
     #[serde(default)]
+    pub ignore: Vec<String>,
+    #[serde(default)]
     pub classify: bool,
     #[serde(default)]
     pub depth: Option<usize>,
@@ -168,6 +170,10 @@ color = true
 
 # Respect .gitignore files
 git_ignore = true
+
+# Global ignore patterns (glob)
+# Example: ignore = ["*.json", "node_modules", "bin"]
+ignore = []
 
 # Append indicator (one of /) to directories
 classify = false

@@ -61,6 +61,10 @@ pub struct Cli {
     #[arg(short = '1', long = "one-per-line")]
     pub one_per_line: bool,
 
+    /// Ignore patterns (glob), e.g., "*.json,node_modules,bin"
+    #[arg(long, value_delimiter = ',')]
+    pub ignore: Vec<String>,
+
     /// Generate a default configuration file
     #[arg(long)]
     pub init_config: bool,

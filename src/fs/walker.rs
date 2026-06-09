@@ -1,4 +1,5 @@
 use ignore::WalkBuilder;
+use ignore::overrides::OverrideBuilder;
 use std::path::{Path, PathBuf};
 use crate::fs::entry::Entry;
 use anyhow::Result;
@@ -10,15 +11,17 @@ pub struct Walker {
     show_hidden: bool,
     use_git_ignore: bool,
     max_depth: usize,
+    ignore_globs: Vec<String>,
 }
 
 impl Walker {
-    pub fn new(path: &Path, show_hidden: bool, use_git_ignore: bool, max_depth: usize) -> Self {
+    pub fn new(path: &Path, show_hidden: bool, use_git_ignore: bool, max_depth: usize, ignore_globs: Vec<String>) -> Self {
         Self {
             path: path.to_path_buf(),
             show_hidden,
             use_git_ignore,
             max_depth,
+            ignore_globs,
         }
     }
 
@@ -36,9 +39,16 @@ impl Walker {
     fn collect_at(&self, path: &Path, current_depth: usize, git_statuses: &HashMap<PathBuf, GitStatus>) -> Result<Vec<Entry>> {
         let mut entries = Vec::new();
         
+        let mut override_builder = OverrideBuilder::new(path);
+        for glob in &self.ignore_globs {
+            override_builder.add(&format!("!{}", glob))?;
+        }
+        let overrides = override_builder.build()?;
+
         let walker = WalkBuilder::new(path)
             .hidden(!self.show_hidden)
             .git_ignore(self.use_git_ignore)
+            .overrides(overrides)
             .max_depth(Some(1))
             .build();
 

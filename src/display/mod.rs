@@ -28,6 +28,7 @@ pub struct DisplayOptions {
     pub one_per_line: bool,
     pub long_view: bool,
     pub depth: Option<usize>,
+    pub ignore_globs: Vec<String>,
 }
 
 impl DisplayOptions {
@@ -43,6 +44,7 @@ impl DisplayOptions {
         let mut depth = config.depth;
         let mut one_per_line = false;
         let long_view = cli.long;
+        let mut ignore_globs = config.ignore.clone();
 
         // 2. Apply TTY overrides if not a terminal
         if !is_tty {
@@ -83,6 +85,10 @@ impl DisplayOptions {
             depth = cli.depth;
         }
 
+        if !cli.ignore.is_empty() {
+            ignore_globs.extend(cli.ignore.clone());
+        }
+
         Self {
             icons,
             color,
@@ -92,6 +98,7 @@ impl DisplayOptions {
             one_per_line,
             long_view,
             depth,
+            ignore_globs,
         }
     }
 }
