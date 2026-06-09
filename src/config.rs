@@ -69,6 +69,7 @@ impl Default for Config {
             color: true,
             hyperlinks: HyperlinkConfig::default(),
             git_ignore: true,
+            ignore: Vec::new(),
             classify: false,
             depth: None,
             long: LongConfig::default(),
