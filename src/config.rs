@@ -6,22 +6,21 @@ use crate::display::Column;
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct HyperlinkConfig {
+    /// Global switch to enable/disable hyperlinks
     #[serde(default = "default_true")]
     pub enabled: bool,
+    /// Hyperlinks for regular files
     #[serde(default = "default_true")]
     pub files: bool,
-    #[serde(default = "default_true")]
-    pub directories: bool,
+    /// Hyperlinks for directories (default false)
+    #[serde(default)]
+    pub dirs: bool,
+    /// Hyperlinks for symlinks
     #[serde(default = "default_true")]
     pub symlinks: bool,
-    #[serde(default)]
-    pub underline_files: bool,
-    #[serde(default)]
-    pub underline_directories: bool,
-    #[serde(default)]
-    pub underline_symlinks: bool,
-    #[serde(default)]
-    pub exclude_env: Vec<String>,
+    /// Hyperlinks for executable files
+    #[serde(default = "default_true")]
+    pub executables: bool,
 }
 
 impl Default for HyperlinkConfig {
@@ -29,12 +28,9 @@ impl Default for HyperlinkConfig {
         Self {
             enabled: true,
             files: true,
-            directories: true,
+            dirs: false,
             symlinks: true,
-            underline_files: false,
-            underline_directories: false,
-            underline_symlinks: false,
-            exclude_env: Vec::new(),
+            executables: true,
         }
     }
 }
@@ -119,8 +115,6 @@ pub struct WhenNotTty {
     pub icons: bool,
     #[serde(default)]
     pub color: bool,
-    #[serde(default)]
-    pub hyperlinks: bool,
     #[serde(default = "default_true")]
     pub one_per_line: bool,
 }
@@ -130,7 +124,6 @@ impl Default for WhenNotTty {
         Self {
             icons: false,
             color: false,
-            hyperlinks: false,
             one_per_line: true,
         }
     }
@@ -183,22 +176,13 @@ classify = false
 # depth = 3
 
 [hyperlinks]
-# Enable clickable hyperlinks in supported terminals (OSC 8)
+# Master switch: enable clickable OSC 8 hyperlinks in supported terminals
 enabled = true
-
-# Enable hyperlinks for specific types
+# Control which entry types get hyperlinks
 files = true
-directories = true
+dirs = false        # disabled: clicking a dir opens it in a file manager
 symlinks = true
-
-# Visually underline (ANSI underline) entries that are links
-underline_files = false
-underline_directories = false
-underline_symlinks = false
-
-# Disable hyperlinks if any of these environment variables are set
-# Example: exclude_env = ["KITTY_WINDOW_ID"] to avoid issues in Kitty
-exclude_env = []
+executables = true
 
 [long]
 # Display column headers in long listing format
@@ -224,7 +208,6 @@ columns = [
 # Configuration for when output is redirected (e.g., to a file or pipe)
 icons = false
 color = false
-hyperlinks = false
 one_per_line = true
 "#
     }

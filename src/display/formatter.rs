@@ -26,6 +26,28 @@ pub fn wrap_hyperlink(uri: &str, text: &str) -> String {
     format!("\x1b]8;;{}\x1b\\{}\x1b]8;;\x1b\\", uri, text)
 }
 
+pub(crate) fn should_hyperlink(options: &DisplayOptions, entry: &Entry) -> bool {
+    if !options.hyperlinks.enabled {
+        return false;
+    }
+    let ft = entry.metadata.file_type();
+    if ft.is_dir() {
+        return options.hyperlinks.dirs;
+    }
+    if ft.is_symlink() {
+        return options.hyperlinks.symlinks;
+    }
+    // Regular file — check if executable
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        if entry.metadata.mode() & 0o111 != 0 {
+            return options.hyperlinks.executables;
+        }
+    }
+    options.hyperlinks.files
+}
+
 pub struct Cell {
     pub content: String,
     pub width: usize,
@@ -187,34 +209,12 @@ impl<'a> ColumnFormatter<'a> {
 
                 let content = format!("{}{}{}{}", icon, name, suffix, target);
 
-                let is_dir = entry.metadata.is_dir();
-                let is_symlink = entry.metadata.file_type().is_symlink();
-                let is_file = entry.metadata.is_file();
-
-                let should_link = self.options.hyperlinks.enabled && match () {
-                    _ if is_symlink => self.options.hyperlinks.symlinks,
-                    _ if is_dir => self.options.hyperlinks.directories,
-                    _ if is_file => self.options.hyperlinks.files,
-                    _ => false,
-                };
-
-                let should_underline = match () {
-                    _ if is_symlink => self.options.hyperlinks.underline_symlinks,
-                    _ if is_dir => self.options.hyperlinks.underline_directories,
-                    _ if is_file => self.options.hyperlinks.underline_files,
-                    _ => false,
-                };
-
-                let mut content = if should_underline {
-                    content.underlined().to_string()
+                let content = if should_hyperlink(self.options, entry) {
+                    let uri = format!("file://{}", entry.abs_path.display());
+                    wrap_hyperlink(&uri, &content)
                 } else {
                     content
                 };
-
-                if should_link {
-                    let uri = format!("file://{}", entry.abs_path.display());
-                    content = wrap_hyperlink(&uri, &content);
-                }
 
                 Cell {
                     content,

@@ -50,16 +50,8 @@ impl DisplayOptions {
         if !is_tty {
             icons = config.when_not_tty.icons;
             color = config.when_not_tty.color;
-            hyperlinks.enabled = config.when_not_tty.hyperlinks;
+            hyperlinks.enabled = false;
             one_per_line = config.when_not_tty.one_per_line;
-        }
-
-        // 3. Exclude by environment variables
-        for env_var in &hyperlinks.exclude_env {
-            if std::env::var_os(env_var).is_some() {
-                hyperlinks.enabled = false;
-                break;
-            }
         }
 
         // 4. CLI overrides
