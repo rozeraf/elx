@@ -68,6 +68,14 @@ pub struct Cli {
     /// Generate a default configuration file
     #[arg(long)]
     pub init_config: bool,
+
+    /// Analyze and update config file to current schema
+    #[arg(long)]
+    pub update_config: bool,
+
+    /// Show what --update-config would do without making changes
+    #[arg(long, requires = "update_config")]
+    pub dry_run: bool,
 }
 
 impl Cli {

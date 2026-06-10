@@ -1,5 +1,6 @@
 mod cli;
 mod config;
+mod config_updater;
 mod display;
 mod fs;
 mod git;
@@ -19,6 +20,24 @@ use config::Config;
 
 fn main() -> Result<()> {
     let args = Cli::parse();
+
+    if args.update_config {
+        use config_updater::ConfigUpdater;
+        let config_path = Config::get_config_path();
+        if !config_path.exists() {
+            anyhow::bail!(
+                "No config file found at {}. Run --init-config first.",
+                config_path.display()
+            );
+        }
+        use std::io::IsTerminal;
+        let interactive = !args.dry_run && std::io::stdin().is_terminal();
+        let mut updater = ConfigUpdater::new(config_path, interactive)?;
+        updater.dry_run = args.dry_run;
+        updater.run()?;
+        return Ok(());
+    }
+
     let config = Config::load();
 
     if args.init_config {
