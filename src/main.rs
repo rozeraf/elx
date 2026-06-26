@@ -58,7 +58,7 @@ fn main() -> Result<()> {
     let options = DisplayOptions::new(&config, &args);
     let theme = Theme::new();
 
-    if args.path.is_file() || (args.path.is_symlink() && !args.path.is_dir()) {
+    if !args.path.is_dir() {
         let entry = fs::entry::Entry::from_path(args.path.clone())?;
         render_entries(vec![entry], &args, &config, &options, &theme);
         return Ok(());
