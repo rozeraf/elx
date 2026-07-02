@@ -84,6 +84,7 @@ pub enum PermissionsFormat {
     Symbolic,   // drwxr-sr-x
     Octal,      // 4755
     Both,       // drwxr-sr-x 4755
+    None,       // Hide permissions
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -208,7 +209,7 @@ headers = true
 # Automatically hide columns that are empty for all shown entries (e.g., Git column if no changes)
 autohide_columns = true
 
-# Permissions display format: symbolic (drwxr-sr-x), octal (4755), both (drwxr-sr-x 4755)
+# Permissions display format: symbolic (drwxr-sr-x), octal (4755), both (drwxr-sr-x 4755), none
 permissions_format = "symbolic"
 
 # Columns to display in long listing format.

@@ -97,6 +97,9 @@ impl<'a> ColumnFormatter<'a> {
                         };
                         (c, 15usize)
                     }
+                    PermissionsFormat::None => {
+                        (String::new(), 0usize)
+                    }
                 };
                 Cell { content, width }
             }
