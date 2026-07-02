@@ -65,6 +65,10 @@ pub struct Cli {
     #[arg(long, value_delimiter = ',')]
     pub ignore: Vec<String>,
 
+    /// Show permissions in octal format (e.g. 4755). Overrides config.
+    #[arg(long, short = 'o')]
+    pub octal: bool,
+
     /// Generate a default configuration file
     #[arg(long)]
     pub init_config: bool,

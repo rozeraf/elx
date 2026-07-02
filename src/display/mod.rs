@@ -6,7 +6,7 @@ pub mod formatter;
 pub use formatter::{Column, Cell, ColumnFormatter};
 
 use terminal_size::{terminal_size, Width};
-use crate::config::{Config, HyperlinkConfig};
+use crate::config::{Config, HyperlinkConfig, PermissionsFormat};
 use crate::cli::Cli;
 use std::io::{stdout, IsTerminal};
 
@@ -29,6 +29,7 @@ pub struct DisplayOptions {
     pub long_view: bool,
     pub depth: Option<usize>,
     pub ignore_globs: Vec<String>,
+    pub permissions_format: PermissionsFormat,
 }
 
 impl DisplayOptions {
@@ -81,6 +82,11 @@ impl DisplayOptions {
             ignore_globs.extend(cli.ignore.clone());
         }
 
+        let mut permissions_format = config.long.permissions_format;
+        if cli.octal {
+            permissions_format = PermissionsFormat::Octal;
+        }
+
         Self {
             icons,
             color,
@@ -91,6 +97,7 @@ impl DisplayOptions {
             long_view,
             depth,
             ignore_globs,
+            permissions_format,
         }
     }
 }

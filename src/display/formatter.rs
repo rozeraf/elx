@@ -2,7 +2,6 @@ use crate::fs::entry::Entry;
 use crate::theme::Theme;
 use crate::display::DisplayOptions;
 use crate::git::GitStatus;
-use std::os::unix::fs::PermissionsExt;
 use chrono::{DateTime, Local};
 use users::{get_user_by_uid, get_group_by_gid};
 use crossterm::style::{Color, Stylize};
@@ -64,13 +63,42 @@ impl<'a> ColumnFormatter<'a> {
         
         match col {
             Column::Permissions => {
-                let mode = metadata.permissions().mode();
-                let content = if !self.options.color {
-                    format_permissions(mode, metadata.is_dir())
-                } else {
-                    format_permissions_colored(mode, metadata.is_dir())
+                use crate::config::PermissionsFormat;
+
+                let (content, width) = match self.options.permissions_format {
+                    PermissionsFormat::Symbolic => {
+                        let c = if self.options.color {
+                            format_permissions_colored(&entry.metadata)
+                        } else {
+                            format_permissions(&entry.metadata)
+                        };
+                        (c, 10usize)
+                    }
+                    PermissionsFormat::Octal => {
+                        let oct = format_permissions_octal(&entry.metadata);
+                        let c = if self.options.color {
+                            oct.with(Color::Yellow).to_string()
+                        } else {
+                            oct
+                        };
+                        (c, 4usize)
+                    }
+                    PermissionsFormat::Both => {
+                        let sym = if self.options.color {
+                            format_permissions_colored(&entry.metadata)
+                        } else {
+                            format_permissions(&entry.metadata)
+                        };
+                        let oct = format_permissions_octal(&entry.metadata);
+                        let c = if self.options.color {
+                            format!("{} {}", sym, oct.with(Color::Yellow))
+                        } else {
+                            format!("{} {}", sym, oct)
+                        };
+                        (c, 15usize)
+                    }
                 };
-                Cell { content, width: 10 }
+                Cell { content, width }
             }
             Column::Links => {
                 #[cfg(unix)]
@@ -225,51 +253,136 @@ impl<'a> ColumnFormatter<'a> {
     }
 }
 
-fn format_permissions(mode: u32, is_dir: bool) -> String {
+#[cfg(unix)]
+fn file_type_char(metadata: &std::fs::Metadata) -> char {
+    let ft = metadata.file_type();
+    if ft.is_dir() { return 'd'; }
+    if ft.is_symlink() { return 'l'; }
+    {
+        use std::os::unix::fs::FileTypeExt;
+        if ft.is_block_device() { return 'b'; }
+        if ft.is_char_device()  { return 'c'; }
+        if ft.is_fifo()         { return 'p'; }
+        if ft.is_socket()       { return 's'; }
+    }
+    '-'
+}
+
+#[cfg(unix)]
+fn triplet_chars(bits: u32, special: bool, sc_exec: char, sc_noexec: char) -> [char; 3] {
+    let r = if bits & 4 != 0 { 'r' } else { '-' };
+    let w = if bits & 2 != 0 { 'w' } else { '-' };
+    let x = if special {
+        if bits & 1 != 0 { sc_exec } else { sc_noexec }
+    } else {
+        if bits & 1 != 0 { 'x' } else { '-' }
+    };
+    [r, w, x]
+}
+
+#[cfg(unix)]
+fn format_permissions(metadata: &std::fs::Metadata) -> String {
+    use std::os::unix::fs::PermissionsExt;
+    let mode = metadata.permissions().mode();
+    let perm = mode & 0o7777;
+
+    let special = (perm >> 9) & 0o7;  // старшие 3 бита: setuid/setgid/sticky
+    let owner   = (perm >> 6) & 0o7;
+    let group   = (perm >> 3) & 0o7;
+    let other   =  perm       & 0o7;
+
+    let owner_t = triplet_chars(owner, special & 4 != 0, 's', 'S');
+    let group_t = triplet_chars(group, special & 2 != 0, 's', 'S');
+    let other_t = triplet_chars(other, special & 1 != 0, 't', 'T');
+
     let mut s = String::with_capacity(10);
-    s.push(if is_dir { 'd' } else { '-' });
-    let chars = ['r', 'w', 'x'];
-    for i in (0..3).rev() {
-        let bits = (mode >> (i * 3)) & 0o7;
-        s.push(if bits & 4 != 0 { chars[0] } else { '-' });
-        s.push(if bits & 2 != 0 { chars[1] } else { '-' });
-        s.push(if bits & 1 != 0 { chars[2] } else { '-' });
+    s.push(file_type_char(metadata));
+    s.extend(owner_t.iter());
+    s.extend(group_t.iter());
+    s.extend(other_t.iter());
+    s
+}
+
+#[cfg(unix)]
+fn format_permissions_colored(metadata: &std::fs::Metadata) -> String {
+    use std::os::unix::fs::PermissionsExt;
+    use crossterm::style::{Color, Stylize};
+
+    let mode = metadata.permissions().mode();
+    let perm = mode & 0o7777;
+    let special = (perm >> 9) & 0o7;
+    let owner   = (perm >> 6) & 0o7;
+    let group   = (perm >> 3) & 0o7;
+    let other   =  perm       & 0o7;
+
+    let owner_t = triplet_chars(owner, special & 4 != 0, 's', 'S');
+    let group_t = triplet_chars(group, special & 2 != 0, 's', 'S');
+    let other_t = triplet_chars(other, special & 1 != 0, 't', 'T');
+
+    let mut s = String::new();
+
+    // Тип файла
+    let type_char = file_type_char(metadata);
+    s.push_str(&match type_char {
+        'd' => type_char.to_string().with(Color::Blue).to_string(),
+        'l' | 'c' | 'b' | 'p' | 's' => type_char.to_string().with(Color::Cyan).to_string(),
+        _ => type_char.to_string().with(Color::Grey).to_string(),
+    });
+
+    // Функция окраски одного символа в триплете
+    let color_char = |c: char, pos: usize| -> String {
+        match (c, pos) {
+            ('r', _) => c.to_string().with(Color::Yellow).to_string(),
+            ('w', _) => c.to_string().with(Color::Red).to_string(),
+            ('x', _) => c.to_string().with(Color::Green).to_string(),
+            ('-', _) => c.to_string().with(Color::Grey).to_string(),
+            ('s' | 'S', p) if p < 3 => {  // setuid (owner)
+                if c == 's' { c.to_string().with(Color::Magenta).bold().to_string() }
+                else { c.to_string().with(Color::Magenta).to_string() }
+            }
+            ('s' | 'S', p) if p < 6 => {  // setgid (group)
+                if c == 's' { c.to_string().with(Color::Magenta).to_string() }
+                else { c.to_string().with(Color::DarkMagenta).to_string() }
+            }
+            ('t' | 'T', _) => {           // sticky (other)
+                if c == 't' { c.to_string().with(Color::Cyan).to_string() }
+                else { c.to_string().with(Color::DarkCyan).to_string() }
+            }
+            _ => c.to_string(),
+        }
+    };
+
+    // Строим 9 символов: owner (0-2), group (3-5), other (6-8)
+    for (i, c) in owner_t.iter().chain(group_t.iter()).chain(other_t.iter()).enumerate() {
+        s.push_str(&color_char(*c, i));
     }
     s
 }
 
-fn format_permissions_colored(mode: u32, is_dir: bool) -> String {
-    let mut s = String::new();
-    
-    if is_dir {
-        s.push_str(&"d".with(Color::Blue).to_string());
-    } else {
-        s.push_str(&"-".with(Color::Grey).to_string());
-    }
+#[cfg(unix)]
+fn format_permissions_octal(metadata: &std::fs::Metadata) -> String {
+    use std::os::unix::fs::PermissionsExt;
+    let mode = metadata.permissions().mode() & 0o7777;
+    let special = (mode >> 9) & 0o7;
+    let owner   = (mode >> 6) & 0o7;
+    let group   = (mode >> 3) & 0o7;
+    let other   =  mode       & 0o7;
+    format!("{}{}{}{}", special, owner, group, other)
+}
 
-    let chars = [('r', Color::Yellow), ('w', Color::Red), ('x', Color::Green)];
-    for i in (0..3).rev() {
-        let bits = (mode >> (i * 3)) & 0o7;
-        
-        if bits & 4 != 0 {
-            s.push_str(&chars[0].0.to_string().with(chars[0].1).to_string());
-        } else {
-            s.push_str(&"-".with(Color::Grey).to_string());
-        }
+#[cfg(not(unix))]
+fn format_permissions(_metadata: &std::fs::Metadata) -> String {
+    "----------".to_string()
+}
 
-        if bits & 2 != 0 {
-            s.push_str(&chars[1].0.to_string().with(chars[1].1).to_string());
-        } else {
-            s.push_str(&"-".with(Color::Grey).to_string());
-        }
+#[cfg(not(unix))]
+fn format_permissions_colored(_metadata: &std::fs::Metadata) -> String {
+    "----------".to_string()
+}
 
-        if bits & 1 != 0 {
-            s.push_str(&chars[2].0.to_string().with(chars[2].1).to_string());
-        } else {
-            s.push_str(&"-".with(Color::Grey).to_string());
-        }
-    }
-    s
+#[cfg(not(unix))]
+fn format_permissions_octal(_metadata: &std::fs::Metadata) -> String {
+    "0000".to_string()
 }
 
 fn format_size(size: u64) -> String {

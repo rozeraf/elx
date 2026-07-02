@@ -77,6 +77,15 @@ impl Default for Config {
     }
 }
 
+#[derive(Deserialize, Serialize, Debug, Clone, Copy, PartialEq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum PermissionsFormat {
+    #[default]
+    Symbolic,   // drwxr-sr-x
+    Octal,      // 4755
+    Both,       // drwxr-sr-x 4755
+}
+
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct LongConfig {
@@ -86,6 +95,8 @@ pub struct LongConfig {
     pub headers: bool,
     #[serde(default)]
     pub autohide_columns: bool,
+    #[serde(default)]
+    pub permissions_format: PermissionsFormat,
 }
 
 impl Default for LongConfig {
@@ -94,6 +105,7 @@ impl Default for LongConfig {
             columns: default_columns(),
             headers: false,
             autohide_columns: false,
+            permissions_format: PermissionsFormat::Symbolic,
         }
     }
 }
@@ -195,6 +207,9 @@ headers = true
 
 # Automatically hide columns that are empty for all shown entries (e.g., Git column if no changes)
 autohide_columns = true
+
+# Permissions display format: symbolic (drwxr-sr-x), octal (4755), both (drwxr-sr-x 4755)
+permissions_format = "symbolic"
 
 # Columns to display in long listing format.
 # Available columns: git, permissions, links, owner, group, size, date, name
