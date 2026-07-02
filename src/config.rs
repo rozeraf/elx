@@ -35,6 +35,72 @@ impl Default for HyperlinkConfig {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SortKey {
+    #[default]
+    Name,           // case-insensitive алфавит (или с учётом, см. ignore_case)
+    NameNatural,    // натуральная: file2 < file10
+    Extension,      // по расширению, тайбрейкер — name
+    Size,           // metadata.len(), директории → 0
+    Modified,       // metadata.modified()
+    Created,        // metadata.created()
+    GitStatus,      // M > A > D > ? > ! > чистый
+    None,           // порядок ФС, без сортировки
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum GroupDirs {
+    #[default]
+    First,   // директории всегда перед файлами
+    Last,    // директории всегда после файлов
+    Mixed,   // не группировать — вместе с файлами по основному ключу
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
+pub struct SortConfig {
+    /// Первичный ключ сортировки
+    #[serde(default)]
+    pub by: SortKey,
+
+    /// Тайбрейкер при равных значениях первичного ключа
+    /// По умолчанию None: при равных значениях — порядок ФС
+    #[serde(default)]
+    pub secondary_by: Option<SortKey>,
+
+    /// Регистронезависимое сравнение имён и расширений
+    #[serde(default = "default_true")]
+    pub ignore_case: bool,
+
+    /// Обратный порядок (применяется к первичному и вторичному ключам,
+    /// но НЕ к group_dirs и dotfiles_first)
+    #[serde(default)]
+    pub reverse: bool,
+
+    /// Группировка директорий: first, last, mixed
+    #[serde(default)]
+    pub group_dirs: GroupDirs,
+
+    /// Показывать скрытые файлы (начинающиеся с .) первыми внутри группы
+    #[serde(default)]
+    pub dotfiles_first: bool,
+}
+
+impl Default for SortConfig {
+    fn default() -> Self {
+        Self {
+            by: SortKey::Name,
+            secondary_by: None,
+            ignore_case: true,
+            reverse: false,
+            group_dirs: GroupDirs::First,
+            dotfiles_first: false,
+        }
+    }
+}
+
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
@@ -56,6 +122,8 @@ pub struct Config {
     pub long: LongConfig,
     #[serde(default)]
     pub when_not_tty: WhenNotTty,
+    #[serde(default)]
+    pub sort: SortConfig,
 }
 
 impl Default for Config {
@@ -70,6 +138,7 @@ impl Default for Config {
             depth: None,
             long: LongConfig::default(),
             when_not_tty: WhenNotTty::default(),
+            sort: SortConfig::default(),
         }
     }
 }
@@ -219,6 +288,26 @@ columns = [
     "date",
     "name",
 ]
+
+[sort]
+# Primary sort key:
+#   name, name_natural, extension, size, modified, created, git_status, none
+by = "name"
+
+# Tiebreaker when primary values are equal (same keys available, or omit)
+# secondary_by = "name"
+
+# Case-insensitive comparison for name/extension keys
+ignore_case = true
+
+# Reverse sort order (applies to sort keys, not to dir/dotfile grouping)
+reverse = false
+
+# Directory grouping: first, last, mixed
+group_dirs = "first"
+
+# Show dotfiles (names starting with .) before regular entries in their group
+dotfiles_first = false
 
 [when_not_tty]
 # Configuration for when output is redirected (e.g., to a file or pipe)

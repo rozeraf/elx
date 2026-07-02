@@ -4,6 +4,7 @@ mod display;
 mod fs;
 mod git;
 mod theme;
+mod sort;
 
 use clap::Parser;
 use cli::Cli;
@@ -16,6 +17,7 @@ use display::get_terminal_width;
 use display::DisplayOptions;
 use unicode_width::UnicodeWidthStr;
 use config::Config;
+use sort::{SortOptions, sort_entries};
 
 fn main() -> Result<()> {
     let args = Cli::parse();
@@ -53,11 +55,52 @@ fn main() -> Result<()> {
     };
 
     let walker = Walker::new(&args.path, args.all, options.git_ignore, max_depth, options.ignore_globs.clone());
-    let entries = walker.collect()?;
+    let sort_opts = build_sort_options(&config, &args);
+    let mut entries = walker.collect()?;
+    sort_entries(&mut entries, &sort_opts);
 
     render_entries(entries, &args, &config, &options, &theme);
 
     Ok(())
+}
+
+fn build_sort_options(config: &Config, cli: &Cli) -> SortOptions {
+    use crate::config::GroupDirs;
+
+    let mut opts = SortOptions::from(&config.sort);
+
+    // --- ключ сортировки ---
+    let (cli_key, shorthand_forces_reverse) = cli.resolve_sort_key();
+    if let Some(key) = cli_key {
+        opts.by = key;
+    }
+    // -t / -S форсируют reverse независимо от конфига
+    if shorthand_forces_reverse {
+        opts.reverse = true;
+    }
+    // явный -r всегда добавляет reverse поверх всего
+    if cli.reverse {
+        opts.reverse = true;
+    }
+
+    // --- группировка директорий ---
+    if cli.dirs_first {
+        opts.group_dirs = GroupDirs::First;
+    } else if cli.dirs_last {
+        opts.group_dirs = GroupDirs::Last;
+    } else if cli.dirs_mixed {
+        opts.group_dirs = GroupDirs::Mixed;
+    }
+
+    // --- прочие переключатели ---
+    if cli.dotfiles_first {
+        opts.dotfiles_first = true;
+    }
+    if cli.case_sensitive {
+        opts.ignore_case = false;
+    }
+
+    opts
 }
 
 fn render_entries(entries: Vec<fs::entry::Entry>, args: &Cli, config: &Config, options: &DisplayOptions, theme: &Theme) {

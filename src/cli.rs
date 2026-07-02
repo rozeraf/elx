@@ -69,6 +69,54 @@ pub struct Cli {
     #[arg(long, short = 'o')]
     pub octal: bool,
 
+    /// Sort by key: name, name_natural, extension, size, modified, created, git_status, none
+    #[arg(long, value_name = "KEY")]
+    pub sort: Option<String>,
+
+    /// Sort by modification time, newest first (shorthand: --sort=modified --reverse)
+    #[arg(short = 't', conflicts_with = "sort")]
+    pub sort_time: bool,
+
+    /// Sort by size, largest first (shorthand: --sort=size --reverse)
+    #[arg(short = 'S', conflicts_with = "sort")]
+    pub sort_size: bool,
+
+    /// Sort by file extension (shorthand: --sort=extension)
+    #[arg(short = 'X', conflicts_with = "sort")]
+    pub sort_extension: bool,
+
+    /// Natural sort of version numbers (shorthand: --sort=name_natural)
+    #[arg(short = 'v', conflicts_with = "sort")]
+    pub sort_natural: bool,
+
+    /// No sorting, filesystem order (shorthand: --sort=none)
+    #[arg(short = 'U', conflicts_with = "sort")]
+    pub sort_none: bool,
+
+    /// Reverse sort order
+    #[arg(short = 'r', long)]
+    pub reverse: bool,
+
+    /// List directories before files (overrides config)
+    #[arg(long, conflicts_with_all = ["dirs_last", "dirs_mixed"])]
+    pub dirs_first: bool,
+
+    /// List directories after files (overrides config)
+    #[arg(long, conflicts_with_all = ["dirs_first", "dirs_mixed"])]
+    pub dirs_last: bool,
+
+    /// Do not group directories (overrides config)
+    #[arg(long, conflicts_with_all = ["dirs_first", "dirs_last"])]
+    pub dirs_mixed: bool,
+
+    /// Show dotfiles before regular entries within their group
+    #[arg(long)]
+    pub dotfiles_first: bool,
+
+    /// Case-sensitive name sorting (overrides config ignore_case = true)
+    #[arg(long)]
+    pub case_sensitive: bool,
+
     /// Generate a default configuration file
     #[arg(long)]
     pub init_config: bool,
@@ -91,5 +139,34 @@ impl Cli {
         if self.hyperlinks { Some(true) }
         else if self.no_hyperlinks { Some(false) }
         else { None }
+    }
+
+    /// Возвращает (ключ, нужно ли форсировать reverse из шортхенда).
+    /// Шортхенды -t и -S сами устанавливают reverse=true.
+    pub fn resolve_sort_key(&self) -> (Option<crate::config::SortKey>, bool) {
+        use crate::config::SortKey;
+        if self.sort_time      { return (Some(SortKey::Modified), true); }
+        if self.sort_size      { return (Some(SortKey::Size), true); }
+        if self.sort_extension { return (Some(SortKey::Extension), false); }
+        if self.sort_natural   { return (Some(SortKey::NameNatural), false); }
+        if self.sort_none      { return (Some(SortKey::None), false); }
+        if let Some(ref s) = self.sort {
+            let key = match s.as_str() {
+                "name"         => SortKey::Name,
+                "name_natural" => SortKey::NameNatural,
+                "extension"    => SortKey::Extension,
+                "size"         => SortKey::Size,
+                "modified"     => SortKey::Modified,
+                "created"      => SortKey::Created,
+                "git_status"   => SortKey::GitStatus,
+                "none"         => SortKey::None,
+                unknown => {
+                    eprintln!("elx: unknown sort key '{}', falling back to 'name'", unknown);
+                    SortKey::Name
+                }
+            };
+            return (Some(key), false);
+        }
+        (None, false)
     }
 }
