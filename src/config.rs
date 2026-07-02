@@ -38,8 +38,6 @@ impl Default for HyperlinkConfig {
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
-    #[serde(default)]
-    pub schema_version: u32,
     #[serde(default = "default_true")]
     pub icons: bool,
     #[serde(default = "default_true")]
@@ -63,7 +61,6 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            schema_version: 3,
             icons: true,
             color: true,
             hyperlinks: HyperlinkConfig::default(),
@@ -171,8 +168,6 @@ impl Config {
 
     pub fn get_default_config_template() -> &'static str {
         r#"# elx configuration file
-
-schema_version = 3
 
 # Display icons next to file names (requires Nerd Font)
 icons = true
