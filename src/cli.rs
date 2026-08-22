@@ -54,7 +54,7 @@ pub struct Cli {
     pub classify: bool,
 
     /// Do not respect .gitignore files
-    #[arg(long)]
+    #[arg(short = 'G', long, visible_alias = "nogit")]
     pub no_git_ignore: bool,
 
     /// Display one entry per line
@@ -120,6 +120,23 @@ pub struct Cli {
     /// Generate a default configuration file
     #[arg(long)]
     pub init_config: bool,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Cli;
+    use clap::Parser;
+
+    #[test]
+    fn git_ignore_can_be_disabled_with_all_supported_flags() {
+        for flag in ["-G", "--nogit", "--no-git-ignore"] {
+            let cli = Cli::try_parse_from(["elx", flag]).unwrap();
+            assert!(
+                cli.no_git_ignore,
+                "flag {flag} should disable git-ignore filtering"
+            );
+        }
+    }
 }
 
 impl Cli {

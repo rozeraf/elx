@@ -29,7 +29,8 @@ While tools like `eza` and `lsd` are excellent, they often come with trade-offs:
 
 `elx` provides powerful filtering capabilities:
 
-- **Git Ignore:** Enabled by default, can be disabled with `--no-git-ignore`.
+- **Git Ignore:** Enabled by default. Disable it with `-G`, `--nogit`, or
+  `--no-git-ignore` to include files matched by `.gitignore`.
 - **Custom Patterns:** Use the `--ignore` flag to skip files or directories using glob patterns. Multiple patterns can be separated by commas.
   ```bash
   elx --ignore "*.json,node_modules,target"
