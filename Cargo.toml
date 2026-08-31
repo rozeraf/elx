@@ -2,6 +2,11 @@
 name = "elx"
 version = "0.1.0"
 edition = "2024"
+description = "Fast and customizable personal ls replacement written in Rust"
+license = "MIT"
+repository = "https://github.com/rozeraf/elx"
+homepage = "https://github.com/rozeraf/elx"
+readme = "README.md"
 
 [dependencies]
 anyhow = "1.0.102"
