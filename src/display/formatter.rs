@@ -1,13 +1,14 @@
-use crate::fs::entry::Entry;
-use crate::theme::Theme;
 use crate::display::DisplayOptions;
+use crate::fs::entry::Entry;
 use crate::git::GitStatus;
-use std::os::unix::fs::PermissionsExt;
+use crate::theme::Theme;
 use chrono::{DateTime, Local};
-use users::{get_user_by_uid, get_group_by_gid};
 use crossterm::style::{Color, Stylize};
+use serde::{Deserialize, Serialize};
+use std::os::unix::fs::PermissionsExt;
+use std::path::Path;
 use unicode_width::UnicodeWidthStr;
-use serde::{Serialize, Deserialize};
+use users::{get_group_by_gid, get_user_by_uid};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -24,6 +25,27 @@ pub enum Column {
 
 pub fn wrap_hyperlink(uri: &str, text: &str) -> String {
     format!("\x1b]8;;{}\x1b\\{}\x1b]8;;\x1b\\", uri, text)
+}
+
+pub fn file_uri(path: &Path) -> String {
+    #[cfg(unix)]
+    let bytes = {
+        use std::os::unix::ffi::OsStrExt;
+        path.as_os_str().as_bytes()
+    };
+    #[cfg(not(unix))]
+    let bytes = path.to_string_lossy().as_bytes();
+
+    let mut uri = String::from("file://");
+    for byte in bytes {
+        match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'.' | b'_' | b'~' | b'/' => {
+                uri.push(*byte as char);
+            }
+            _ => uri.push_str(&format!("%{byte:02X}")),
+        }
+    }
+    uri
 }
 
 pub(crate) fn should_hyperlink(options: &DisplayOptions, entry: &Entry) -> bool {
@@ -61,7 +83,7 @@ pub struct ColumnFormatter<'a> {
 impl<'a> ColumnFormatter<'a> {
     pub fn format_column(&self, col: Column, entry: &Entry) -> Cell {
         let metadata = &entry.metadata;
-        
+
         match col {
             Column::Permissions => {
                 let mode = metadata.permissions().mode();
@@ -80,7 +102,7 @@ impl<'a> ColumnFormatter<'a> {
                 };
                 #[cfg(not(unix))]
                 let nlink = 1;
-                
+
                 let content = nlink.to_string();
                 let width = content.len();
                 Cell { content, width }
@@ -97,7 +119,7 @@ impl<'a> ColumnFormatter<'a> {
                 let owner_name = get_user_by_uid(uid)
                     .map(|u| u.name().to_string_lossy().into_owned())
                     .unwrap_or_else(|| uid.to_string());
-                
+
                 let width = owner_name.len();
                 let content = if !self.options.color {
                     owner_name
@@ -118,7 +140,7 @@ impl<'a> ColumnFormatter<'a> {
                 let group_name = get_group_by_gid(gid)
                     .map(|g| g.name().to_string_lossy().into_owned())
                     .unwrap_or_else(|| gid.to_string());
-                
+
                 let width = group_name.len();
                 let content = if !self.options.color {
                     group_name
@@ -138,7 +160,8 @@ impl<'a> ColumnFormatter<'a> {
                 Cell { content, width }
             }
             Column::Date => {
-                let modified: DateTime<Local> = metadata.modified()
+                let modified: DateTime<Local> = metadata
+                    .modified()
                     .map(|t| t.into())
                     .unwrap_or_else(|_| Local::now());
                 let date_str = modified.format("%b %d %H:%M").to_string();
@@ -159,7 +182,7 @@ impl<'a> ColumnFormatter<'a> {
                     Some(GitStatus::Ignored) => ("!", Color::Grey),
                     _ => (" ", Color::Reset),
                 };
-                
+
                 let content = if self.options.color && color != Color::Reset {
                     symbol.with(color).to_string()
                 } else {
@@ -171,10 +194,16 @@ impl<'a> ColumnFormatter<'a> {
                 let icon_str = if !self.options.icons {
                     "".to_string()
                 } else {
-                    self.theme.icons.get_icon(&entry.path, entry.metadata.is_dir())
+                    self.theme
+                        .icons
+                        .get_icon(&entry.path, entry.metadata.is_dir())
                 };
 
-                let icon_width = if icon_str.is_empty() { 0 } else { icon_str.width() + 1 };
+                let icon_width = if icon_str.is_empty() {
+                    0
+                } else {
+                    icon_str.width() + 1
+                };
                 let icon = if icon_str.is_empty() {
                     "".to_string()
                 } else {
@@ -184,10 +213,17 @@ impl<'a> ColumnFormatter<'a> {
                 let name = if !self.options.color {
                     entry.name.clone()
                 } else {
-                    self.theme.colors.colorize(&entry.name, &entry.metadata).to_string()
+                    self.theme
+                        .colors
+                        .colorize(&entry.name, &entry.metadata)
+                        .to_string()
                 };
 
-                let suffix = if self.options.classify && entry.metadata.is_dir() { "/" } else { "" };
+                let suffix = if self.options.classify && entry.metadata.is_dir() {
+                    "/"
+                } else {
+                    ""
+                };
                 let suffix_width = suffix.len();
 
                 let target = if let Some(t) = &entry.link_target {
@@ -210,7 +246,7 @@ impl<'a> ColumnFormatter<'a> {
                 let content = format!("{}{}{}{}", icon, name, suffix, target);
 
                 let content = if should_hyperlink(self.options, entry) {
-                    let uri = format!("file://{}", entry.abs_path.display());
+                    let uri = file_uri(&entry.abs_path);
                     wrap_hyperlink(&uri, &content)
                 } else {
                     content
@@ -240,7 +276,7 @@ fn format_permissions(mode: u32, is_dir: bool) -> String {
 
 fn format_permissions_colored(mode: u32, is_dir: bool) -> String {
     let mut s = String::new();
-    
+
     if is_dir {
         s.push_str(&"d".with(Color::Blue).to_string());
     } else {
@@ -250,7 +286,7 @@ fn format_permissions_colored(mode: u32, is_dir: bool) -> String {
     let chars = [('r', Color::Yellow), ('w', Color::Red), ('x', Color::Green)];
     for i in (0..3).rev() {
         let bits = (mode >> (i * 3)) & 0o7;
-        
+
         if bits & 4 != 0 {
             s.push_str(&chars[0].0.to_string().with(chars[0].1).to_string());
         } else {
@@ -284,5 +320,16 @@ fn format_size(size: u64) -> String {
         format!("{:.0} {}", size, UNITS[unit_idx])
     } else {
         format!("{:.1} {}", size, UNITS[unit_idx])
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::file_uri;
+    use std::path::Path;
+
+    #[test]
+    fn file_uri_percent_encodes_unsafe_bytes() {
+        assert_eq!(file_uri(Path::new("/tmp/a b#c")), "file:///tmp/a%20b%23c");
     }
 }

@@ -1,8 +1,8 @@
-pub mod icons;
 pub mod colors;
+pub mod icons;
 
-use crate::theme::icons::IconManager;
 use crate::theme::colors::ColorManager;
+use crate::theme::icons::IconManager;
 
 pub struct Theme {
     pub icons: IconManager,

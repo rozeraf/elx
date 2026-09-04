@@ -1,7 +1,7 @@
-use std::path::{Path, PathBuf};
-use std::collections::HashMap;
 use gix::ThreadSafeRepository;
 use gix::bstr::ByteSlice;
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GitStatus {
@@ -20,7 +20,7 @@ pub fn find_repo(path: &Path) -> Option<PathBuf> {
 
 pub fn get_statuses(repo_root: &Path) -> HashMap<PathBuf, GitStatus> {
     let mut statuses = HashMap::new();
-    
+
     let repo = match ThreadSafeRepository::open(repo_root) {
         Ok(r) => r.to_thread_local(),
         Err(_) => return statuses,
@@ -36,9 +36,7 @@ pub fn get_statuses(repo_root: &Path) -> HashMap<PathBuf, GitStatus> {
         Err(_) => return statuses,
     };
 
-    let results = status_platform
-        .into_iter(Vec::new())
-        .ok();
+    let results = status_platform.into_iter(Vec::new()).ok();
 
     if let Some(status_iter) = results {
         for entry in status_iter {
@@ -50,11 +48,10 @@ pub fn get_statuses(repo_root: &Path) -> HashMap<PathBuf, GitStatus> {
                             use gix::status::index_worktree::Item as WorktreeItem;
                             match it {
                                 WorktreeItem::Modification {
-                                    rela_path,
-                                    status,
-                                    ..
+                                    rela_path, status, ..
                                 } => {
-                                    let path = work_dir.join(gix::path::from_bstr(rela_path.as_bstr()));
+                                    let path =
+                                        work_dir.join(gix::path::from_bstr(rela_path.as_bstr()));
                                     let git_status = match status {
                                         gix::status::plumbing::index_as_worktree::EntryStatus::Change(change) => {
                                             match change {
@@ -69,14 +66,16 @@ pub fn get_statuses(repo_root: &Path) -> HashMap<PathBuf, GitStatus> {
                                         statuses.insert(path, s);
                                     }
                                 }
-                                WorktreeItem::DirectoryContents {
-                                    entry,
-                                    ..
-                                } => {
-                                    let path = work_dir.join(gix::path::from_bstr(entry.rela_path.as_bstr()));
+                                WorktreeItem::DirectoryContents { entry, .. } => {
+                                    let path = work_dir
+                                        .join(gix::path::from_bstr(entry.rela_path.as_bstr()));
                                     let git_status = match entry.status {
-                                        gix::dir::entry::Status::Untracked => Some(GitStatus::Untracked),
-                                        gix::dir::entry::Status::Ignored(_) => Some(GitStatus::Ignored),
+                                        gix::dir::entry::Status::Untracked => {
+                                            Some(GitStatus::Untracked)
+                                        }
+                                        gix::dir::entry::Status::Ignored(_) => {
+                                            Some(GitStatus::Ignored)
+                                        }
                                         _ => None,
                                     };
                                     if let Some(s) = git_status {

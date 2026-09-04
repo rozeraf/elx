@@ -1,6 +1,6 @@
+use crate::display::{Cell, Column, ColumnFormatter, DisplayOptions};
 use crate::fs::entry::Entry;
 use crate::theme::Theme;
-use crate::display::{DisplayOptions, Column, ColumnFormatter, Cell};
 use std::collections::HashMap;
 
 pub struct LongView<'a> {
@@ -13,7 +13,14 @@ pub struct LongView<'a> {
 }
 
 impl<'a> LongView<'a> {
-    pub fn new(entries: &'a [Entry], theme: &'a Theme, options: &'a DisplayOptions, columns: Vec<Column>, headers: bool, autohide_columns: bool) -> Self {
+    pub fn new(
+        entries: &'a [Entry],
+        theme: &'a Theme,
+        options: &'a DisplayOptions,
+        columns: Vec<Column>,
+        headers: bool,
+        autohide_columns: bool,
+    ) -> Self {
         Self {
             entries,
             theme,
@@ -76,14 +83,14 @@ impl<'a> LongView<'a> {
 
         for entry in self.entries {
             let mut row = HashMap::new();
-            
+
             for col in &active_columns {
                 let cell = formatter.format_column(*col, entry);
                 let current_max = col_widths.entry(*col).or_insert(0);
                 *current_max = (*current_max).max(cell.width);
                 row.insert(*col, cell);
             }
-            
+
             table.push(row);
         }
 
@@ -99,10 +106,10 @@ impl<'a> LongView<'a> {
                     Column::Date => "Date",
                     Column::Name => "Name",
                 };
-                
+
                 let width = col_widths[col];
                 let is_last = i == active_columns.len() - 1;
-                
+
                 let content = if self.options.color {
                     use crossterm::style::Stylize;
                     header.underlined().to_string()
@@ -112,7 +119,11 @@ impl<'a> LongView<'a> {
 
                 match col {
                     Column::Links | Column::Size => {
-                        print!("{}{}", " ".repeat(width.saturating_sub(header.len())), content);
+                        print!(
+                            "{}{}",
+                            " ".repeat(width.saturating_sub(header.len())),
+                            content
+                        );
                     }
                     _ => {
                         print!("{}", content);
@@ -133,7 +144,7 @@ impl<'a> LongView<'a> {
                 if let Some(cell) = row.get(col) {
                     let width = col_widths[col];
                     let is_last = i == active_columns.len() - 1;
-                    
+
                     match col {
                         Column::Permissions | Column::Date | Column::Name | Column::Git => {
                             print!("{}", cell.content);
@@ -142,7 +153,11 @@ impl<'a> LongView<'a> {
                             }
                         }
                         Column::Links | Column::Size => {
-                            print!("{}{}", " ".repeat(width.saturating_sub(cell.width)), cell.content);
+                            print!(
+                                "{}{}",
+                                " ".repeat(width.saturating_sub(cell.width)),
+                                cell.content
+                            );
                             if !is_last {
                                 print!(" ");
                             }

@@ -51,7 +51,7 @@ The config file is located at `~/.config/elx/config.toml`.
 
 ### Hyperlinks (OSC 8)
 
-One of the unique features of `elx` is the highly configurable support for terminal hyperlinks. You can control exactly what becomes a link and how it looks:
+One of the unique features of `elx` is configurable support for terminal hyperlinks. You can control which entry types become links:
 
 ```toml
 [hyperlinks]
@@ -60,17 +60,9 @@ enabled = true
 
 # Toggle links for specific entry types
 files = true
-directories = true
+dirs = false
 symlinks = true
-
-# Visually underline entries that are clickable (ANSI underline)
-underline_files = true
-underline_directories = false
-underline_symlinks = true
-
-# Automatically disable hyperlinks if specific environment variables are set
-# (Useful for terminals with buggy or unwanted hyperlink behavior)
-exclude_env = ["KITTY_WINDOW_ID", "SOME_OTHER_VAR"]
+executables = true
 ```
 
 ## Architecture

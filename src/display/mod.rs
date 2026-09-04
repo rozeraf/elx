@@ -1,14 +1,14 @@
+pub mod formatter;
 pub mod grid;
 pub mod long;
 pub mod tree;
-pub mod formatter;
 
-pub use formatter::{Column, Cell, ColumnFormatter};
+pub use formatter::{Cell, Column, ColumnFormatter};
 
-use terminal_size::{terminal_size, Width};
-use crate::config::{Config, HyperlinkConfig};
 use crate::cli::Cli;
-use std::io::{stdout, IsTerminal};
+use crate::config::{Config, HyperlinkConfig};
+use std::io::{IsTerminal, stdout};
+use terminal_size::{Width, terminal_size};
 
 pub fn get_terminal_width() -> usize {
     if let Some((Width(w), _)) = terminal_size() {
@@ -34,7 +34,7 @@ pub struct DisplayOptions {
 impl DisplayOptions {
     pub fn new(config: &Config, cli: &Cli) -> Self {
         let is_tty = stdout().is_terminal();
-        
+
         // 1. Start with global config
         let mut icons = config.icons;
         let mut color = config.color;

@@ -80,20 +80,32 @@ pub struct Cli {
 
 impl Cli {
     pub fn icons_overridden(&self) -> Option<bool> {
-        if self.icons { Some(true) }
-        else if self.no_icons { Some(false) }
-        else { None }
+        if self.icons {
+            Some(true)
+        } else if self.no_icons {
+            Some(false)
+        } else {
+            None
+        }
     }
 
     pub fn color_overridden(&self) -> Option<bool> {
-        if self.color { Some(true) }
-        else if self.no_color { Some(false) }
-        else { None }
+        if self.color {
+            Some(true)
+        } else if self.no_color {
+            Some(false)
+        } else {
+            None
+        }
     }
 
     pub fn hyperlinks_overridden(&self) -> Option<bool> {
-        if self.hyperlinks { Some(true) }
-        else if self.no_hyperlinks { Some(false) }
-        else { None }
+        if self.hyperlinks {
+            Some(true)
+        } else if self.no_hyperlinks {
+            Some(false)
+        } else {
+            None
+        }
     }
 }

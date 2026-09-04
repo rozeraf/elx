@@ -1,7 +1,10 @@
-use serde::{Deserialize, Serialize};
-use figment::{Figment, providers::{Format, Toml, Env}};
-use std::path::PathBuf;
 use crate::display::Column;
+use figment::{
+    Figment,
+    providers::{Env, Format, Toml},
+};
+use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
