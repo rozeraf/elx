@@ -54,7 +54,7 @@ pub struct Cli {
     pub classify: bool,
 
     /// Do not respect .gitignore files
-    #[arg(long)]
+    #[arg(short = 'G', long)]
     pub no_git_ignore: bool,
 
     /// Display one entry per line
