@@ -5,7 +5,7 @@ use crate::theme::Theme;
 use chrono::{DateTime, Local};
 use crossterm::style::{Color, Stylize};
 use serde::{Deserialize, Serialize};
-use std::os::unix::fs::PermissionsExt;
+use std::os::unix::fs::MetadataExt;
 use std::path::Path;
 use unicode_width::UnicodeWidthStr;
 use users::{get_group_by_gid, get_user_by_uid};
@@ -103,11 +103,11 @@ impl<'a> ColumnFormatter<'a> {
 
         match col {
             Column::Permissions => {
-                let mode = metadata.permissions().mode();
+                let mode = metadata.mode();
                 let content = if !self.options.color {
-                    format_permissions(mode, metadata.is_dir())
+                    format_permissions(mode)
                 } else {
-                    format_permissions_colored(mode, metadata.is_dir())
+                    format_permissions_colored(mode)
                 };
                 Cell { content, width: 10 }
             }
@@ -279,51 +279,50 @@ impl<'a> ColumnFormatter<'a> {
     }
 }
 
-fn format_permissions(mode: u32, is_dir: bool) -> String {
+fn format_permissions(mode: u32) -> String {
     let mut s = String::with_capacity(10);
-    s.push(if is_dir { 'd' } else { '-' });
-    let chars = ['r', 'w', 'x'];
+    s.push(match mode & 0o170000 {
+        0o040000 => 'd',
+        0o100000 => '-',
+        0o120000 => 'l',
+        0o010000 => 'p',
+        0o140000 => 's',
+        0o020000 => 'c',
+        0o060000 => 'b',
+        _ => '?',
+    });
     for i in (0..3).rev() {
         let bits = (mode >> (i * 3)) & 0o7;
-        s.push(if bits & 4 != 0 { chars[0] } else { '-' });
-        s.push(if bits & 2 != 0 { chars[1] } else { '-' });
-        s.push(if bits & 1 != 0 { chars[2] } else { '-' });
+        s.push(if bits & 4 != 0 { 'r' } else { '-' });
+        s.push(if bits & 2 != 0 { 'w' } else { '-' });
+        let special = mode & (0o1000 << i) != 0;
+        s.push(match (bits & 1 != 0, special, i == 0) {
+            (true, true, true) => 't',
+            (false, true, true) => 'T',
+            (true, true, false) => 's',
+            (false, true, false) => 'S',
+            (true, false, _) => 'x',
+            (false, false, _) => '-',
+        });
     }
     s
 }
 
-fn format_permissions_colored(mode: u32, is_dir: bool) -> String {
-    let mut s = String::new();
-
-    if is_dir {
-        s.push_str(&"d".with(Color::Blue).to_string());
-    } else {
-        s.push_str(&"-".with(Color::Grey).to_string());
-    }
-
-    let chars = [('r', Color::Yellow), ('w', Color::Red), ('x', Color::Green)];
-    for i in (0..3).rev() {
-        let bits = (mode >> (i * 3)) & 0o7;
-
-        if bits & 4 != 0 {
-            s.push_str(&chars[0].0.to_string().with(chars[0].1).to_string());
-        } else {
-            s.push_str(&"-".with(Color::Grey).to_string());
-        }
-
-        if bits & 2 != 0 {
-            s.push_str(&chars[1].0.to_string().with(chars[1].1).to_string());
-        } else {
-            s.push_str(&"-".with(Color::Grey).to_string());
-        }
-
-        if bits & 1 != 0 {
-            s.push_str(&chars[2].0.to_string().with(chars[2].1).to_string());
-        } else {
-            s.push_str(&"-".with(Color::Grey).to_string());
-        }
-    }
-    s
+fn format_permissions_colored(mode: u32) -> String {
+    format_permissions(mode)
+        .chars()
+        .map(|ch| {
+            let color = match ch {
+                'd' => Color::Blue,
+                'r' => Color::Yellow,
+                'w' => Color::Red,
+                'x' | 's' | 'S' | 't' | 'T' => Color::Green,
+                'l' | 'p' | 'c' | 'b' => Color::Cyan,
+                _ => Color::Grey,
+            };
+            ch.with(color).to_string()
+        })
+        .collect()
 }
 
 fn format_size(size: u64) -> String {
@@ -358,5 +357,24 @@ mod tests {
             "файл界\\n\\r\\t\\u{1b}\\u{7}\\u{9b}\\u{202e}"
         );
         assert_ne!(escape_terminal_text("a\n"), escape_terminal_text("a\\n"));
+    }
+
+    #[test]
+    fn permissions_show_special_bits_and_file_types() {
+        for (mode, expected) in [
+            (0o104755, "-rwsr-xr-x"),
+            (0o102644, "-rw-r-Sr--"),
+            (0o104644, "-rwSr--r--"),
+            (0o102755, "-rwxr-sr-x"),
+            (0o041777, "drwxrwxrwt"),
+            (0o041766, "drwxrw-rwT"),
+            (0o120777, "lrwxrwxrwx"),
+            (0o010600, "prw-------"),
+            (0o140600, "srw-------"),
+            (0o020600, "crw-------"),
+            (0o060600, "brw-------"),
+        ] {
+            assert_eq!(super::format_permissions(mode), expected);
+        }
     }
 }
