@@ -147,12 +147,13 @@ fn render_entries(
                     format!("{} ", icon_str)
                 };
 
+                let safe_name = display::formatter::escape_terminal_text(&entry.name);
                 let name = if !options.color {
-                    entry.name.clone()
+                    safe_name.clone()
                 } else {
                     theme
                         .colors
-                        .colorize(&entry.name, &entry.metadata)
+                        .colorize(&safe_name, &entry.metadata)
                         .to_string()
                 };
 
@@ -175,7 +176,7 @@ fn render_entries(
 
                 GridEntry {
                     display_name,
-                    display_width: icon_width + entry.name.width() + suffix_width,
+                    display_width: icon_width + safe_name.width() + suffix_width,
                 }
             })
             .collect();

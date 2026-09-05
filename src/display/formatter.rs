@@ -23,6 +23,23 @@ pub enum Column {
     Git,
 }
 
+/// Escape terminal controls and bidirectional formatting without changing filesystem paths.
+pub fn escape_terminal_text(text: &str) -> String {
+    let mut escaped = String::new();
+    for ch in text.chars() {
+        if ch.is_control()
+            || matches!(ch, '\u{061c}' | '\u{200e}' | '\u{200f}' | '\u{202a}'..='\u{202e}' | '\u{2066}'..='\u{2069}')
+        {
+            escaped.extend(ch.escape_default());
+        } else if ch == '\\' {
+            escaped.push_str("\\\\");
+        } else {
+            escaped.push(ch);
+        }
+    }
+    escaped
+}
+
 pub fn wrap_hyperlink(uri: &str, text: &str) -> String {
     format!("\x1b]8;;{}\x1b\\{}\x1b]8;;\x1b\\", uri, text)
 }
@@ -210,12 +227,13 @@ impl<'a> ColumnFormatter<'a> {
                     format!("{} ", icon_str)
                 };
 
+                let safe_name = escape_terminal_text(&entry.name);
                 let name = if !self.options.color {
-                    entry.name.clone()
+                    safe_name.clone()
                 } else {
                     self.theme
                         .colors
-                        .colorize(&entry.name, &entry.metadata)
+                        .colorize(&safe_name, &entry.metadata)
                         .to_string()
                 };
 
@@ -227,7 +245,7 @@ impl<'a> ColumnFormatter<'a> {
                 let suffix_width = suffix.len();
 
                 let target = if let Some(t) = &entry.link_target {
-                    let target_name = t.display().to_string();
+                    let target_name = escape_terminal_text(&t.to_string_lossy());
                     if !self.options.color {
                         format!(" -> {}", target_name)
                     } else {
@@ -238,7 +256,7 @@ impl<'a> ColumnFormatter<'a> {
                 };
 
                 let target_width = if let Some(t) = &entry.link_target {
-                    t.display().to_string().width() + 4
+                    escape_terminal_text(&t.to_string_lossy()).width() + 4
                 } else {
                     0
                 };
@@ -254,7 +272,7 @@ impl<'a> ColumnFormatter<'a> {
 
                 Cell {
                     content,
-                    width: icon_width + entry.name.width() + suffix_width + target_width,
+                    width: icon_width + safe_name.width() + suffix_width + target_width,
                 }
             }
         }
@@ -325,11 +343,20 @@ fn format_size(size: u64) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::file_uri;
+    use super::{escape_terminal_text, file_uri};
     use std::path::Path;
 
     #[test]
     fn file_uri_percent_encodes_unsafe_bytes() {
         assert_eq!(file_uri(Path::new("/tmp/a b#c")), "file:///tmp/a%20b%23c");
+    }
+
+    #[test]
+    fn escapes_terminal_controls_and_preserves_readable_unicode() {
+        assert_eq!(
+            escape_terminal_text("файл界\n\r\t\x1b\x07\u{009b}\u{202e}"),
+            "файл界\\n\\r\\t\\u{1b}\\u{7}\\u{9b}\\u{202e}"
+        );
+        assert_ne!(escape_terminal_text("a\n"), escape_terminal_text("a\\n"));
     }
 }
