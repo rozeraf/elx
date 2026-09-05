@@ -2,7 +2,7 @@ use clap::Parser;
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
-#[command(name = "elx")]
+#[command(name = "elx", version)]
 #[command(about = "A personal ls-clone in Rust with Git integration and Tree view", long_about = None)]
 pub struct Cli {
     /// Path to the directory or file
