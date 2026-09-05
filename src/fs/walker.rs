@@ -1,5 +1,5 @@
 use crate::fs::entry::Entry;
-use crate::git::{GitStatus, find_repo, get_statuses};
+use crate::git::{GitStatus, find_repo, get_statuses, status_for_path};
 use anyhow::Result;
 use ignore::WalkBuilder;
 use ignore::overrides::OverrideBuilder;
@@ -34,7 +34,7 @@ impl Walker {
     pub fn collect(&self) -> Result<Vec<Entry>> {
         let abs_root = self.path.canonicalize().unwrap_or(self.path.clone());
         let git_statuses = if let Some(repo_root) = find_repo(&abs_root) {
-            get_statuses(&repo_root)
+            get_statuses(&repo_root, !self.use_git_ignore)
         } else {
             HashMap::new()
         };
@@ -72,7 +72,7 @@ impl Walker {
             }
 
             let mut entry = Entry::from_path(entry_path.clone())?;
-            entry.git_status = git_statuses.get(&entry.abs_path).copied();
+            entry.git_status = status_for_path(git_statuses, &entry.abs_path);
 
             if entry.metadata.is_dir() && current_depth < self.max_depth {
                 entry.children =

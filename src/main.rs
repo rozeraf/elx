@@ -71,7 +71,12 @@ fn main() -> Result<()> {
     let theme = Theme::new();
 
     if !args.path.is_dir() {
-        let entry = fs::entry::Entry::from_path(args.path.clone())?;
+        let mut entry = fs::entry::Entry::from_path(args.path.clone())?;
+        let status_path = git::status_path(&entry.abs_path);
+        if let Some(repo_root) = status_path.parent().and_then(git::find_repo) {
+            let statuses = git::get_statuses(&repo_root, true);
+            entry.git_status = git::status_for_path(&statuses, &entry.abs_path);
+        }
         render_entries(vec![entry], &args, &config, &options, &theme);
         return Ok(());
     }

@@ -25,6 +25,12 @@ While tools like `eza` and `lsd` are excellent, they often come with trade-offs:
 - **Auto-Config:** Easy setup with `--init-config` to generate a default configuration file.
 - **Classify:** Automatic indicator (`/`) for directories via `-F` or config.
 
+In long listings, directory Git summaries show `M` when tracked descendants have
+changes (including staged changes and deletions), or `?` when only untracked
+descendants are present. Ignored files do not mark their parent directories as
+modified. Use `-G` to include ignored entries and show their `!` status. Git status
+also works for an explicitly listed file and through directory symlinks.
+
 ## Filtering
 
 `elx` provides powerful filtering capabilities:

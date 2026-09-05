@@ -18,7 +18,29 @@ pub fn find_repo(path: &Path) -> Option<PathBuf> {
         .map(|repo| repo.path().to_path_buf())
 }
 
-pub fn get_statuses(repo_root: &Path) -> HashMap<PathBuf, GitStatus> {
+/// Resolve parent directories, but never follow the final symlink itself.
+pub fn status_path(path: &Path) -> PathBuf {
+    let absolute = std::path::absolute(path).unwrap_or_else(|_| path.to_path_buf());
+    match (absolute.parent(), absolute.file_name()) {
+        (Some(parent), Some(name)) => parent
+            .canonicalize()
+            .map(|parent| parent.join(name))
+            .unwrap_or(absolute),
+        _ => absolute,
+    }
+}
+
+pub fn status_for_path(statuses: &HashMap<PathBuf, GitStatus>, path: &Path) -> Option<GitStatus> {
+    let path = status_path(path);
+    statuses.get(&path).copied().or_else(|| {
+        // gix can collapse ignored directories instead of enumerating their contents.
+        path.ancestors().skip(1).find_map(|parent| {
+            (statuses.get(parent) == Some(&GitStatus::Ignored)).then_some(GitStatus::Ignored)
+        })
+    })
+}
+
+pub fn get_statuses(repo_root: &Path, include_ignored: bool) -> HashMap<PathBuf, GitStatus> {
     let mut statuses = HashMap::new();
 
     let repo = match ThreadSafeRepository::open(repo_root) {
@@ -27,12 +49,18 @@ pub fn get_statuses(repo_root: &Path) -> HashMap<PathBuf, GitStatus> {
     };
 
     let work_dir = match repo.work_dir() {
-        Some(wd) => wd.to_path_buf(),
+        Some(wd) => wd.canonicalize().unwrap_or_else(|_| wd.to_path_buf()),
         None => return statuses,
     };
 
     let status_platform = match repo.status(gix::progress::Discard) {
-        Ok(s) => s,
+        Ok(s) => s.dirwalk_options(|options| {
+            options
+                .emit_untracked(gix::dir::walk::EmissionMode::Matching)
+                .emit_ignored(
+                    include_ignored.then_some(gix::dir::walk::EmissionMode::CollapseDirectory),
+                )
+        }),
         Err(_) => return statuses,
     };
 
@@ -104,5 +132,29 @@ pub fn get_statuses(repo_root: &Path) -> HashMap<PathBuf, GitStatus> {
         }
     }
 
+    let mut directories = HashMap::new();
+    for (path, status) in &statuses {
+        let summary = match status {
+            GitStatus::Ignored => continue,
+            GitStatus::Untracked => GitStatus::Untracked,
+            _ => GitStatus::Modified,
+        };
+        for parent in path.ancestors().skip(1) {
+            if !parent.starts_with(&work_dir) {
+                break;
+            }
+            directories
+                .entry(parent.to_path_buf())
+                .and_modify(|existing| {
+                    if summary == GitStatus::Modified {
+                        *existing = summary;
+                    }
+                })
+                .or_insert(summary);
+        }
+    }
+    for (path, status) in directories {
+        statuses.entry(path).or_insert(status);
+    }
     statuses
 }
