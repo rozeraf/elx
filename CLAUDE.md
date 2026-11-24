@@ -35,6 +35,12 @@ filtering via `ignore`, layered config via `figment`.
 - Config sources: `~/.config/elx/config.toml` then `ELX_*` env vars, then CLI flags.
 - `rtk` rewrites shell commands and can trim output (`git show`, `git diff`). Use `rtk proxy <cmd>` when you need exact file content.
 
+## Project constraints
+- Linux only, Nerd Fonts assumed installed.
+- Correctness first, performance second.
+- Architectural changes are discussed with the user first, not done on the fly.
+- Behaviour references: eza, lsd, GNU coreutils `ls.c` (look up specific parts, don't port wholesale).
+
 ## Context files
-- `idea.md`: original vision and roadmap (gitignored).
+- `todo.md`: task checklist.
 - `filtering-ux.md`: planned filtering/UX work (per-mode overrides `[all]`/`[tree]`, `git_ignore = dim`, tree collapse, etc.).

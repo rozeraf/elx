@@ -1,0 +1,65 @@
+# TODO
+
+Details and rationale for each feature: `filtering-ux.md` (section numbers in brackets).
+Order matters: later items build on earlier ones.
+
+## Cleanup (quick)
+
+- [ ] Fix README `[hyperlinks]` example: uses `directories`, `underline_*`, `exclude_env`, which `HyperlinkConfig` doesn't have (`deny_unknown_fields` → config fails to load). Use `dirs`, `executables`.
+- [ ] Remove unused `toml` dependency from `Cargo.toml`. Check whether `toml_edit` is still used after the config_updater removal.
+- [ ] Remove redundant `homepage` from `Cargo.toml` (clippy `redundant_homepage`).
+- [ ] `src/sort.rs:195`: `sort_entries(entries: &mut Vec<Entry>)` → `&mut [Entry]` (clippy `ptr_arg`).
+- [ ] Run `cargo fmt` once on `cli.rs` and `sort.rs` in a separate `style:` commit so later diffs stay clean.
+- [ ] Translate remaining Russian comments in `cli.rs`, `config.rs`, `sort.rs`, `formatter.rs` to English.
+- [ ] Optional: restore distinct colors for setuid/setgid (magenta) and sticky (cyan) in `format_permissions_colored` (lost in the v0.1.2 merge; now same green as `x`).
+- [ ] User side: remove `schema_version` from `~/.config/elx/config.toml` (field was dropped in `8c48690`).
+
+## Filtering
+
+- [ ] **Per-mode overrides `[all]` / `[tree]`** [0]
+  - [ ] `ModeOverrides` struct in `config.rs`, all fields `Option<T>`: `icons`, `color`, `classify`, `git_ignore` first.
+  - [ ] `Config` gets `all: ModeOverrides`, `tree: ModeOverrides`.
+  - [ ] Move `when_not_tty` onto the same struct (keep current keys working).
+  - [ ] `DisplayOptions::new`: base → `[all]` (if `-a`) → `[tree]` (if `-T`) → `[when_not_tty]` → CLI.
+  - [ ] Lists (`ignore`, `collapse`) replace, not extend.
+  - [ ] Update `get_default_config_template()` and README.
+  - [ ] Tests: precedence for `-a`, `-T`, `-aT`, non-TTY, CLI override.
+- [ ] **`git_ignore = "hide" | "dim" | "show"`** [1]
+  - [ ] Enum in `config.rs`; `true` → `hide`, `false` → `show` for old configs.
+  - [ ] Walker: `git_ignore(false)` for `dim`/`show`.
+  - [ ] Render entries with status `!` dimmed in grid/long/tree.
+  - [ ] Verify `gix` actually reports `!` for ignored files (see `tests/git_status.rs`).
+  - [ ] `-G` stays = `show`.
+- [ ] **Tree collapse** [2]
+  - [ ] `collapse: Vec<String>` (globs) in config + `[tree]`.
+  - [ ] `walker.rs`: matching dir → no `children`, mark collapsed.
+  - [ ] Tree renders `name/ …` (optionally entry count).
+  - [ ] `--collapse <globs>`, `--no-collapse`.
+- [ ] **Hidden summary footer** [3]
+  - [ ] Walker counts skipped entries by reason (hidden / gitignored / pattern).
+  - [ ] Footer `N hidden (…) — use -a / -G to show`, TTY only.
+  - [ ] `show_hidden_summary = false` to disable.
+- [ ] **Show everything / disable config ignore** [4]
+  - [ ] `--no-config-ignore`.
+  - [ ] `-aa` (`ArgAction::Count`) or `-u`: hidden + gitignore + config patterns off. Check `--all` still works.
+- [ ] **`--changed`** [5]: only `M/A/D/?` entries plus their parent dirs.
+- [ ] **`--only <globs>`, `-D/--dirs-only`, `--files-only`** [6]; prune empty dirs in tree.
+- [ ] **Negation in `--ignore`** (`!pattern` re-includes) [7]. Check `OverrideBuilder` whitelist semantics first.
+- [ ] **`.elxignore`** [8]: `WalkBuilder::add_custom_ignore_filename`.
+
+## UX
+
+- [ ] `--sort` as `clap::ValueEnum` instead of `String` (error with valid values instead of silent fallback).
+- [ ] `--print-config`: effective config after all layers for the current flags.
+- [ ] `-L <N>` alias for `--depth`; `--depth` without `-T` enables tree.
+- [ ] Shell completions via `clap_complete` (new dep) behind hidden `--completions <shell>`.
+
+## Later (from idea.md "not in MVP")
+
+- [ ] Custom icon/color themes via config (`[theme]` section; now hardcoded in `src/theme/`).
+- [ ] `-R` recursive listing (ls-style sections per directory, unlike `-T`).
+- [ ] Directory size (du-style) in long view, opt-in (`--total-size`), since it walks the whole subtree.
+
+## Release
+
+- [ ] Next release after the Cleanup section + per-mode overrides: bump to 0.2.0 (config format changes), merge `dev` → `main`, tag `v0.2.0`.
