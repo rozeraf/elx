@@ -1,6 +1,6 @@
 # elx — personal ls-clone in Rust
 
-`elx` (explore + ls + x) is a personal replacement for `ls`, built from scratch in Rust. It's designed to be fast, highly customizable, and tailored for a specific workflow, rather than being a universal tool for everyone.
+`elx` is a personal replacement for `ls`, built from scratch in Rust. It's designed to be fast, highly customizable, and tailored for a specific workflow, rather than being a universal tool for everyone.
 
 ## Why elx?
 
