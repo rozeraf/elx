@@ -25,6 +25,12 @@ While tools like `eza` and `lsd` are excellent, they often come with trade-offs:
 - **Auto-Config:** Easy setup with `--init-config` to generate a default configuration file.
 - **Classify:** Automatic indicator (`/`) for directories via `-F` or config.
 
+In long listings, directory Git summaries show `M` when tracked descendants have
+changes (including staged changes and deletions), or `?` when only untracked
+descendants are present. Ignored files do not mark their parent directories as
+modified. Use `-G` to include ignored entries and show their `!` status. Git status
+also works for an explicitly listed file and through directory symlinks.
+
 ## Filtering
 
 `elx` provides powerful filtering capabilities:
@@ -52,7 +58,7 @@ The config file is located at `~/.config/elx/config.toml`.
 
 ### Hyperlinks (OSC 8)
 
-One of the unique features of `elx` is the highly configurable support for terminal hyperlinks. You can control exactly what becomes a link and how it looks:
+One of the unique features of `elx` is configurable support for terminal hyperlinks. You can control which entry types become links:
 
 ```toml
 [hyperlinks]
@@ -61,17 +67,9 @@ enabled = true
 
 # Toggle links for specific entry types
 files = true
-directories = true
+dirs = false
 symlinks = true
-
-# Visually underline entries that are clickable (ANSI underline)
-underline_files = true
-underline_directories = false
-underline_symlinks = true
-
-# Automatically disable hyperlinks if specific environment variables are set
-# (Useful for terminals with buggy or unwanted hyperlink behavior)
-exclude_env = ["KITTY_WINDOW_ID", "SOME_OTHER_VAR"]
+executables = true
 ```
 
 ## Architecture

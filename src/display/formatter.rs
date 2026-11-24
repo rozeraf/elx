@@ -1,12 +1,14 @@
-use crate::fs::entry::Entry;
-use crate::theme::Theme;
 use crate::display::DisplayOptions;
+use crate::fs::entry::Entry;
 use crate::git::GitStatus;
+use crate::theme::Theme;
 use chrono::{DateTime, Local};
-use users::{get_user_by_uid, get_group_by_gid};
 use crossterm::style::{Color, Stylize};
+use serde::{Deserialize, Serialize};
+use std::os::unix::fs::MetadataExt;
+use std::path::Path;
 use unicode_width::UnicodeWidthStr;
-use serde::{Serialize, Deserialize};
+use users::{get_group_by_gid, get_user_by_uid};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -21,8 +23,46 @@ pub enum Column {
     Git,
 }
 
+/// Escape terminal controls and bidirectional formatting without changing filesystem paths.
+pub fn escape_terminal_text(text: &str) -> String {
+    let mut escaped = String::new();
+    for ch in text.chars() {
+        if ch.is_control()
+            || matches!(ch, '\u{061c}' | '\u{200e}' | '\u{200f}' | '\u{202a}'..='\u{202e}' | '\u{2066}'..='\u{2069}')
+        {
+            escaped.extend(ch.escape_default());
+        } else if ch == '\\' {
+            escaped.push_str("\\\\");
+        } else {
+            escaped.push(ch);
+        }
+    }
+    escaped
+}
+
 pub fn wrap_hyperlink(uri: &str, text: &str) -> String {
     format!("\x1b]8;;{}\x1b\\{}\x1b]8;;\x1b\\", uri, text)
+}
+
+pub fn file_uri(path: &Path) -> String {
+    #[cfg(unix)]
+    let bytes = {
+        use std::os::unix::ffi::OsStrExt;
+        path.as_os_str().as_bytes()
+    };
+    #[cfg(not(unix))]
+    let bytes = path.to_string_lossy().as_bytes();
+
+    let mut uri = String::from("file://");
+    for byte in bytes {
+        match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'.' | b'_' | b'~' | b'/' => {
+                uri.push(*byte as char);
+            }
+            _ => uri.push_str(&format!("%{byte:02X}")),
+        }
+    }
+    uri
 }
 
 pub(crate) fn should_hyperlink(options: &DisplayOptions, entry: &Entry) -> bool {
@@ -60,7 +100,7 @@ pub struct ColumnFormatter<'a> {
 impl<'a> ColumnFormatter<'a> {
     pub fn format_column(&self, col: Column, entry: &Entry) -> Cell {
         let metadata = &entry.metadata;
-        
+
         match col {
             Column::Permissions => {
                 use crate::config::PermissionsFormat;
@@ -68,14 +108,14 @@ impl<'a> ColumnFormatter<'a> {
                 let (content, width) = match self.options.permissions_format {
                     PermissionsFormat::Symbolic => {
                         let c = if self.options.color {
-                            format_permissions_colored(&entry.metadata)
+                            format_permissions_colored(metadata.mode())
                         } else {
-                            format_permissions(&entry.metadata)
+                            format_permissions(metadata.mode())
                         };
                         (c, 10usize)
                     }
                     PermissionsFormat::Octal => {
-                        let oct = format_permissions_octal(&entry.metadata);
+                        let oct = format_permissions_octal(metadata.mode());
                         let c = if self.options.color {
                             oct.with(Color::Yellow).to_string()
                         } else {
@@ -85,11 +125,11 @@ impl<'a> ColumnFormatter<'a> {
                     }
                     PermissionsFormat::Both => {
                         let sym = if self.options.color {
-                            format_permissions_colored(&entry.metadata)
+                            format_permissions_colored(metadata.mode())
                         } else {
-                            format_permissions(&entry.metadata)
+                            format_permissions(metadata.mode())
                         };
-                        let oct = format_permissions_octal(&entry.metadata);
+                        let oct = format_permissions_octal(metadata.mode());
                         let c = if self.options.color {
                             format!("{} {}", sym, oct.with(Color::Yellow))
                         } else {
@@ -111,7 +151,7 @@ impl<'a> ColumnFormatter<'a> {
                 };
                 #[cfg(not(unix))]
                 let nlink = 1;
-                
+
                 let content = nlink.to_string();
                 let width = content.len();
                 Cell { content, width }
@@ -128,7 +168,7 @@ impl<'a> ColumnFormatter<'a> {
                 let owner_name = get_user_by_uid(uid)
                     .map(|u| u.name().to_string_lossy().into_owned())
                     .unwrap_or_else(|| uid.to_string());
-                
+
                 let width = owner_name.len();
                 let content = if !self.options.color {
                     owner_name
@@ -149,7 +189,7 @@ impl<'a> ColumnFormatter<'a> {
                 let group_name = get_group_by_gid(gid)
                     .map(|g| g.name().to_string_lossy().into_owned())
                     .unwrap_or_else(|| gid.to_string());
-                
+
                 let width = group_name.len();
                 let content = if !self.options.color {
                     group_name
@@ -169,7 +209,8 @@ impl<'a> ColumnFormatter<'a> {
                 Cell { content, width }
             }
             Column::Date => {
-                let modified: DateTime<Local> = metadata.modified()
+                let modified: DateTime<Local> = metadata
+                    .modified()
                     .map(|t| t.into())
                     .unwrap_or_else(|_| Local::now());
                 let date_str = modified.format("%b %d %H:%M").to_string();
@@ -190,7 +231,7 @@ impl<'a> ColumnFormatter<'a> {
                     Some(GitStatus::Ignored) => ("!", Color::Grey),
                     _ => (" ", Color::Reset),
                 };
-                
+
                 let content = if self.options.color && color != Color::Reset {
                     symbol.with(color).to_string()
                 } else {
@@ -202,27 +243,41 @@ impl<'a> ColumnFormatter<'a> {
                 let icon_str = if !self.options.icons {
                     "".to_string()
                 } else {
-                    self.theme.icons.get_icon(&entry.path, entry.metadata.is_dir())
+                    self.theme
+                        .icons
+                        .get_icon(&entry.path, entry.metadata.is_dir())
                 };
 
-                let icon_width = if icon_str.is_empty() { 0 } else { icon_str.width() + 1 };
+                let icon_width = if icon_str.is_empty() {
+                    0
+                } else {
+                    icon_str.width() + 1
+                };
                 let icon = if icon_str.is_empty() {
                     "".to_string()
                 } else {
                     format!("{} ", icon_str)
                 };
 
+                let safe_name = escape_terminal_text(&entry.name);
                 let name = if !self.options.color {
-                    entry.name.clone()
+                    safe_name.clone()
                 } else {
-                    self.theme.colors.colorize(&entry.name, &entry.metadata).to_string()
+                    self.theme
+                        .colors
+                        .colorize(&safe_name, &entry.metadata)
+                        .to_string()
                 };
 
-                let suffix = if self.options.classify && entry.metadata.is_dir() { "/" } else { "" };
+                let suffix = if self.options.classify && entry.metadata.is_dir() {
+                    "/"
+                } else {
+                    ""
+                };
                 let suffix_width = suffix.len();
 
                 let target = if let Some(t) = &entry.link_target {
-                    let target_name = t.display().to_string();
+                    let target_name = escape_terminal_text(&t.to_string_lossy());
                     if !self.options.color {
                         format!(" -> {}", target_name)
                     } else {
@@ -233,7 +288,7 @@ impl<'a> ColumnFormatter<'a> {
                 };
 
                 let target_width = if let Some(t) = &entry.link_target {
-                    t.display().to_string().width() + 4
+                    escape_terminal_text(&t.to_string_lossy()).width() + 4
                 } else {
                     0
                 };
@@ -241,7 +296,7 @@ impl<'a> ColumnFormatter<'a> {
                 let content = format!("{}{}{}{}", icon, name, suffix, target);
 
                 let content = if should_hyperlink(self.options, entry) {
-                    let uri = format!("file://{}", entry.abs_path.display());
+                    let uri = file_uri(&entry.abs_path);
                     wrap_hyperlink(&uri, &content)
                 } else {
                     content
@@ -249,143 +304,61 @@ impl<'a> ColumnFormatter<'a> {
 
                 Cell {
                     content,
-                    width: icon_width + entry.name.width() + suffix_width + target_width,
+                    width: icon_width + safe_name.width() + suffix_width + target_width,
                 }
             }
         }
     }
 }
 
-#[cfg(unix)]
-fn file_type_char(metadata: &std::fs::Metadata) -> char {
-    let ft = metadata.file_type();
-    if ft.is_dir() { return 'd'; }
-    if ft.is_symlink() { return 'l'; }
-    {
-        use std::os::unix::fs::FileTypeExt;
-        if ft.is_block_device() { return 'b'; }
-        if ft.is_char_device()  { return 'c'; }
-        if ft.is_fifo()         { return 'p'; }
-        if ft.is_socket()       { return 's'; }
-    }
-    '-'
-}
-
-#[cfg(unix)]
-fn triplet_chars(bits: u32, special: bool, sc_exec: char, sc_noexec: char) -> [char; 3] {
-    let r = if bits & 4 != 0 { 'r' } else { '-' };
-    let w = if bits & 2 != 0 { 'w' } else { '-' };
-    let x = if special {
-        if bits & 1 != 0 { sc_exec } else { sc_noexec }
-    } else {
-        if bits & 1 != 0 { 'x' } else { '-' }
-    };
-    [r, w, x]
-}
-
-#[cfg(unix)]
-fn format_permissions(metadata: &std::fs::Metadata) -> String {
-    use std::os::unix::fs::PermissionsExt;
-    let mode = metadata.permissions().mode();
-    let perm = mode & 0o7777;
-
-    let special = (perm >> 9) & 0o7;  // старшие 3 бита: setuid/setgid/sticky
-    let owner   = (perm >> 6) & 0o7;
-    let group   = (perm >> 3) & 0o7;
-    let other   =  perm       & 0o7;
-
-    let owner_t = triplet_chars(owner, special & 4 != 0, 's', 'S');
-    let group_t = triplet_chars(group, special & 2 != 0, 's', 'S');
-    let other_t = triplet_chars(other, special & 1 != 0, 't', 'T');
-
+fn format_permissions(mode: u32) -> String {
     let mut s = String::with_capacity(10);
-    s.push(file_type_char(metadata));
-    s.extend(owner_t.iter());
-    s.extend(group_t.iter());
-    s.extend(other_t.iter());
-    s
-}
-
-#[cfg(unix)]
-fn format_permissions_colored(metadata: &std::fs::Metadata) -> String {
-    use std::os::unix::fs::PermissionsExt;
-    use crossterm::style::{Color, Stylize};
-
-    let mode = metadata.permissions().mode();
-    let perm = mode & 0o7777;
-    let special = (perm >> 9) & 0o7;
-    let owner   = (perm >> 6) & 0o7;
-    let group   = (perm >> 3) & 0o7;
-    let other   =  perm       & 0o7;
-
-    let owner_t = triplet_chars(owner, special & 4 != 0, 's', 'S');
-    let group_t = triplet_chars(group, special & 2 != 0, 's', 'S');
-    let other_t = triplet_chars(other, special & 1 != 0, 't', 'T');
-
-    let mut s = String::new();
-
-    // Тип файла
-    let type_char = file_type_char(metadata);
-    s.push_str(&match type_char {
-        'd' => type_char.to_string().with(Color::Blue).to_string(),
-        'l' | 'c' | 'b' | 'p' | 's' => type_char.to_string().with(Color::Cyan).to_string(),
-        _ => type_char.to_string().with(Color::Grey).to_string(),
+    s.push(match mode & 0o170000 {
+        0o040000 => 'd',
+        0o100000 => '-',
+        0o120000 => 'l',
+        0o010000 => 'p',
+        0o140000 => 's',
+        0o020000 => 'c',
+        0o060000 => 'b',
+        _ => '?',
     });
-
-    // Функция окраски одного символа в триплете
-    let color_char = |c: char, pos: usize| -> String {
-        match (c, pos) {
-            ('r', _) => c.to_string().with(Color::Yellow).to_string(),
-            ('w', _) => c.to_string().with(Color::Red).to_string(),
-            ('x', _) => c.to_string().with(Color::Green).to_string(),
-            ('-', _) => c.to_string().with(Color::Grey).to_string(),
-            ('s' | 'S', p) if p < 3 => {  // setuid (owner)
-                if c == 's' { c.to_string().with(Color::Magenta).bold().to_string() }
-                else { c.to_string().with(Color::Magenta).to_string() }
-            }
-            ('s' | 'S', p) if p < 6 => {  // setgid (group)
-                if c == 's' { c.to_string().with(Color::Magenta).to_string() }
-                else { c.to_string().with(Color::DarkMagenta).to_string() }
-            }
-            ('t' | 'T', _) => {           // sticky (other)
-                if c == 't' { c.to_string().with(Color::Cyan).to_string() }
-                else { c.to_string().with(Color::DarkCyan).to_string() }
-            }
-            _ => c.to_string(),
-        }
-    };
-
-    // Строим 9 символов: owner (0-2), group (3-5), other (6-8)
-    for (i, c) in owner_t.iter().chain(group_t.iter()).chain(other_t.iter()).enumerate() {
-        s.push_str(&color_char(*c, i));
+    for i in (0..3).rev() {
+        let bits = (mode >> (i * 3)) & 0o7;
+        s.push(if bits & 4 != 0 { 'r' } else { '-' });
+        s.push(if bits & 2 != 0 { 'w' } else { '-' });
+        let special = mode & (0o1000 << i) != 0;
+        s.push(match (bits & 1 != 0, special, i == 0) {
+            (true, true, true) => 't',
+            (false, true, true) => 'T',
+            (true, true, false) => 's',
+            (false, true, false) => 'S',
+            (true, false, _) => 'x',
+            (false, false, _) => '-',
+        });
     }
     s
 }
 
-#[cfg(unix)]
-fn format_permissions_octal(metadata: &std::fs::Metadata) -> String {
-    use std::os::unix::fs::PermissionsExt;
-    let mode = metadata.permissions().mode() & 0o7777;
-    let special = (mode >> 9) & 0o7;
-    let owner   = (mode >> 6) & 0o7;
-    let group   = (mode >> 3) & 0o7;
-    let other   =  mode       & 0o7;
-    format!("{}{}{}{}", special, owner, group, other)
+fn format_permissions_colored(mode: u32) -> String {
+    format_permissions(mode)
+        .chars()
+        .map(|ch| {
+            let color = match ch {
+                'd' => Color::Blue,
+                'r' => Color::Yellow,
+                'w' => Color::Red,
+                'x' | 's' | 'S' | 't' | 'T' => Color::Green,
+                'l' | 'p' | 'c' | 'b' => Color::Cyan,
+                _ => Color::Grey,
+            };
+            ch.with(color).to_string()
+        })
+        .collect()
 }
 
-#[cfg(not(unix))]
-fn format_permissions(_metadata: &std::fs::Metadata) -> String {
-    "----------".to_string()
-}
-
-#[cfg(not(unix))]
-fn format_permissions_colored(_metadata: &std::fs::Metadata) -> String {
-    "----------".to_string()
-}
-
-#[cfg(not(unix))]
-fn format_permissions_octal(_metadata: &std::fs::Metadata) -> String {
-    "0000".to_string()
+fn format_permissions_octal(mode: u32) -> String {
+    format!("{:04o}", mode & 0o7777)
 }
 
 fn format_size(size: u64) -> String {
@@ -400,5 +373,44 @@ fn format_size(size: u64) -> String {
         format!("{:.0} {}", size, UNITS[unit_idx])
     } else {
         format!("{:.1} {}", size, UNITS[unit_idx])
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{escape_terminal_text, file_uri};
+    use std::path::Path;
+
+    #[test]
+    fn file_uri_percent_encodes_unsafe_bytes() {
+        assert_eq!(file_uri(Path::new("/tmp/a b#c")), "file:///tmp/a%20b%23c");
+    }
+
+    #[test]
+    fn escapes_terminal_controls_and_preserves_readable_unicode() {
+        assert_eq!(
+            escape_terminal_text("файл界\n\r\t\x1b\x07\u{009b}\u{202e}"),
+            "файл界\\n\\r\\t\\u{1b}\\u{7}\\u{9b}\\u{202e}"
+        );
+        assert_ne!(escape_terminal_text("a\n"), escape_terminal_text("a\\n"));
+    }
+
+    #[test]
+    fn permissions_show_special_bits_and_file_types() {
+        for (mode, expected) in [
+            (0o104755, "-rwsr-xr-x"),
+            (0o102644, "-rw-r-Sr--"),
+            (0o104644, "-rwSr--r--"),
+            (0o102755, "-rwxr-sr-x"),
+            (0o041777, "drwxrwxrwt"),
+            (0o041766, "drwxrw-rwT"),
+            (0o120777, "lrwxrwxrwx"),
+            (0o010600, "prw-------"),
+            (0o140600, "srw-------"),
+            (0o020600, "crw-------"),
+            (0o060600, "brw-------"),
+        ] {
+            assert_eq!(super::format_permissions(mode), expected);
+        }
     }
 }

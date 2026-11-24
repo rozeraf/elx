@@ -43,7 +43,8 @@ impl IconManager {
             return "\u{f115}".to_string(); // Default directory icon
         }
 
-        let name = path.file_name()
+        let name = path
+            .file_name()
             .map(|n| n.to_string_lossy().to_string().to_lowercase())
             .unwrap_or_default();
 
@@ -51,7 +52,8 @@ impl IconManager {
             return icon.clone();
         }
 
-        let extension = path.extension()
+        let extension = path
+            .extension()
             .map(|e| e.to_string_lossy().to_string().to_lowercase())
             .unwrap_or_default();
 

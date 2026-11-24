@@ -2,7 +2,7 @@ use clap::Parser;
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
-#[command(name = "elx")]
+#[command(name = "elx", version)]
 #[command(about = "A personal ls-clone in Rust with Git integration and Tree view", long_about = None)]
 pub struct Cli {
     /// Path to the directory or file
@@ -141,21 +141,33 @@ mod tests {
 
 impl Cli {
     pub fn icons_overridden(&self) -> Option<bool> {
-        if self.icons { Some(true) }
-        else if self.no_icons { Some(false) }
-        else { None }
+        if self.icons {
+            Some(true)
+        } else if self.no_icons {
+            Some(false)
+        } else {
+            None
+        }
     }
 
     pub fn color_overridden(&self) -> Option<bool> {
-        if self.color { Some(true) }
-        else if self.no_color { Some(false) }
-        else { None }
+        if self.color {
+            Some(true)
+        } else if self.no_color {
+            Some(false)
+        } else {
+            None
+        }
     }
 
     pub fn hyperlinks_overridden(&self) -> Option<bool> {
-        if self.hyperlinks { Some(true) }
-        else if self.no_hyperlinks { Some(false) }
-        else { None }
+        if self.hyperlinks {
+            Some(true)
+        } else if self.no_hyperlinks {
+            Some(false)
+        } else {
+            None
+        }
     }
 
     /// Возвращает (ключ, нужно ли форсировать reverse из шортхенда).

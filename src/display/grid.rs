@@ -16,21 +16,31 @@ pub fn render(options: GridOptions) -> String {
     }
 
     if options.one_per_line {
-        return options.entries.iter()
+        return options
+            .entries
+            .iter()
             .map(|e| e.display_name.clone())
             .collect::<Vec<_>>()
-            .join("\n") + "\n";
+            .join("\n")
+            + "\n";
     }
 
     // 1. Try single line
-    let total_width_single_line: usize = options.entries.iter().map(|e| e.display_width).sum::<usize>() 
+    let total_width_single_line: usize = options
+        .entries
+        .iter()
+        .map(|e| e.display_width)
+        .sum::<usize>()
         + (count.saturating_sub(1) * 2);
-    
+
     if total_width_single_line <= options.terminal_width {
-        return options.entries.iter()
+        return options
+            .entries
+            .iter()
             .map(|e| e.display_name.clone())
             .collect::<Vec<_>>()
-            .join("  ") + "\n";
+            .join("  ")
+            + "\n";
     }
 
     // 2. Variable column width algorithm
@@ -43,10 +53,10 @@ pub fn render(options: GridOptions) -> String {
     }
 
     for cols in (2..=max_cols).rev() {
-        let rows = (count + cols - 1) / cols;
+        let rows = count.div_ceil(cols);
         let mut col_widths = vec![0; cols];
 
-        for col in 0..cols {
+        for (col, col_width) in col_widths.iter_mut().enumerate() {
             let mut current_max = 0;
             for row in 0..rows {
                 let idx = col * rows + row;
@@ -54,7 +64,7 @@ pub fn render(options: GridOptions) -> String {
                     current_max = current_max.max(options.entries[idx].display_width);
                 }
             }
-            col_widths[col] = current_max;
+            *col_width = current_max;
         }
 
         let total_grid_width: usize = col_widths.iter().sum::<usize>() + 2 * (cols - 1);
@@ -64,10 +74,13 @@ pub fn render(options: GridOptions) -> String {
     }
 
     // Fallback: single column
-    options.entries.iter()
+    options
+        .entries
+        .iter()
         .map(|e| e.display_name.clone())
         .collect::<Vec<_>>()
-        .join("\n") + "\n"
+        .join("\n")
+        + "\n"
 }
 
 fn build_grid(entries: &[GridEntry], rows: usize, cols: usize, col_widths: &[usize]) -> String {
@@ -75,14 +88,14 @@ fn build_grid(entries: &[GridEntry], rows: usize, cols: usize, col_widths: &[usi
     let mut output = String::new();
 
     for row in 0..rows {
-        for col in 0..cols {
+        for (col, col_width) in col_widths.iter().enumerate().take(cols) {
             let idx = col * rows + row;
             if idx < count {
                 let entry = &entries[idx];
                 output.push_str(&entry.display_name);
 
                 if col < cols - 1 && (col + 1) * rows + row < count {
-                    let padding = (col_widths[col] + 2) - entry.display_width;
+                    let padding = (*col_width + 2) - entry.display_width;
                     output.push_str(&" ".repeat(padding));
                 }
             }
@@ -113,9 +126,18 @@ mod tests {
     #[test]
     fn test_all_in_one_line() {
         let entries = vec![
-            GridEntry { display_name: "f1".to_string(), display_width: 2 },
-            GridEntry { display_name: "f2".to_string(), display_width: 2 },
-            GridEntry { display_name: "f3".to_string(), display_width: 2 },
+            GridEntry {
+                display_name: "f1".to_string(),
+                display_width: 2,
+            },
+            GridEntry {
+                display_name: "f2".to_string(),
+                display_width: 2,
+            },
+            GridEntry {
+                display_name: "f3".to_string(),
+                display_width: 2,
+            },
         ];
         // 2+2+2 + 2*2 = 10. Fits in 10.
         let options = GridOptions {
@@ -129,10 +151,22 @@ mod tests {
     #[test]
     fn test_variable_widths() {
         let entries = vec![
-            GridEntry { display_name: "long_name".to_string(), display_width: 9 },
-            GridEntry { display_name: "s".to_string(), display_width: 1 },
-            GridEntry { display_name: "medium".to_string(), display_width: 6 },
-            GridEntry { display_name: "f4".to_string(), display_width: 2 },
+            GridEntry {
+                display_name: "long_name".to_string(),
+                display_width: 9,
+            },
+            GridEntry {
+                display_name: "s".to_string(),
+                display_width: 1,
+            },
+            GridEntry {
+                display_name: "medium".to_string(),
+                display_width: 6,
+            },
+            GridEntry {
+                display_name: "f4".to_string(),
+                display_width: 2,
+            },
         ];
         // If terminal is small, should have 2 columns.
         // Col 0: long_name (9), s (1) -> width 11
@@ -150,11 +184,26 @@ mod tests {
     #[test]
     fn test_odd_number_variable() {
         let entries = vec![
-            GridEntry { display_name: "a".to_string(), display_width: 1 },
-            GridEntry { display_name: "b".to_string(), display_width: 1 },
-            GridEntry { display_name: "c".to_string(), display_width: 1 },
-            GridEntry { display_name: "d".to_string(), display_width: 1 },
-            GridEntry { display_name: "e".to_string(), display_width: 1 },
+            GridEntry {
+                display_name: "a".to_string(),
+                display_width: 1,
+            },
+            GridEntry {
+                display_name: "b".to_string(),
+                display_width: 1,
+            },
+            GridEntry {
+                display_name: "c".to_string(),
+                display_width: 1,
+            },
+            GridEntry {
+                display_name: "d".to_string(),
+                display_width: 1,
+            },
+            GridEntry {
+                display_name: "e".to_string(),
+                display_width: 1,
+            },
         ];
         // cols=2, rows=3.
         // Col 0: a, b, c -> width 3
@@ -171,8 +220,14 @@ mod tests {
     #[test]
     fn test_one_per_line() {
         let entries = vec![
-            GridEntry { display_name: "a".to_string(), display_width: 1 },
-            GridEntry { display_name: "b".to_string(), display_width: 1 },
+            GridEntry {
+                display_name: "a".to_string(),
+                display_width: 1,
+            },
+            GridEntry {
+                display_name: "b".to_string(),
+                display_width: 1,
+            },
         ];
         let options = GridOptions {
             terminal_width: 80,
