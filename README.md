@@ -35,8 +35,9 @@ also works for an explicitly listed file and through directory symlinks.
 
 `elx` provides powerful filtering capabilities:
 
-- **Git Ignore:** Enabled by default. Disable it with `-G`, `--nogit`, or
-  `--no-git-ignore` to include files matched by `.gitignore`.
+- **Git Ignore:** Entries matched by `.gitignore` are hidden by default. Set `git_ignore = "dim"` to show them
+  greyed out, or `"show"` to list them normally (same as `-G`, `--nogit`, `--no-git-ignore`).
+  The old `true`/`false` values still work (`true` = hide, `false` = show).
 - **Custom Patterns:** Use the `--ignore` flag to skip files or directories using glob patterns. Multiple patterns can be separated by commas.
   ```bash
   elx --ignore "*.json,node_modules,target"
@@ -71,8 +72,8 @@ classify = true
 color = false
 
 [tree]
-git_ignore = false
-ignore = ["target", "node_modules"]
+git_ignore = "dim"
+ignore = ["node_modules"]
 ```
 
 Order: top-level → `[all]` → `[tree]` → `[when_not_tty]` → CLI flags (CLI always wins).

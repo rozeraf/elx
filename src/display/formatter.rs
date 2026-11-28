@@ -1,3 +1,4 @@
+use crate::config::GitIgnoreMode;
 use crate::display::DisplayOptions;
 use crate::fs::entry::Entry;
 use crate::git::GitStatus;
@@ -63,6 +64,26 @@ pub fn file_uri(path: &Path) -> String {
         }
     }
     uri
+}
+
+pub(crate) fn colored_name(
+    theme: &Theme,
+    options: &DisplayOptions,
+    entry: &Entry,
+    safe_name: &str,
+) -> String {
+    if !options.color {
+        safe_name.to_string()
+    } else if options.git_ignore == GitIgnoreMode::Dim
+        && entry.git_status == Some(GitStatus::Ignored)
+    {
+        safe_name.with(Color::DarkGrey).to_string()
+    } else {
+        theme
+            .colors
+            .colorize(safe_name, &entry.metadata)
+            .to_string()
+    }
 }
 
 pub(crate) fn should_hyperlink(options: &DisplayOptions, entry: &Entry) -> bool {
@@ -257,14 +278,7 @@ impl<'a> ColumnFormatter<'a> {
                 };
 
                 let safe_name = escape_terminal_text(&entry.name);
-                let name = if !self.options.color {
-                    safe_name.clone()
-                } else {
-                    self.theme
-                        .colors
-                        .colorize(&safe_name, &entry.metadata)
-                        .to_string()
-                };
+                let name = colored_name(self.theme, self.options, entry, &safe_name);
 
                 let suffix = if self.options.classify && entry.metadata.is_dir() {
                     "/"

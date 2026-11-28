@@ -19,12 +19,9 @@ Order matters: later items build on earlier ones.
 
 - [x] **Per-mode overrides `[all]` / `[tree]`** [0]: `ModeOverrides` with `icons`, `color`, `classify`, `git_ignore`, `ignore` (replaces). `collapse` gets added with tree collapse.
   - [x] `[when_not_tty]` moved onto `ModeOverrides` (unset keys now inherit instead of defaulting to `false`).
-- [ ] **`git_ignore = "hide" | "dim" | "show"`** [1]
-  - [ ] Enum in `config.rs`; `true` → `hide`, `false` → `show` for old configs.
-  - [ ] Walker: `git_ignore(false)` for `dim`/`show`.
-  - [ ] Render entries with status `!` dimmed in grid/long/tree.
-  - [ ] Verify `gix` actually reports `!` for ignored files (see `tests/git_status.rs`).
-  - [ ] `-G` stays = `show`.
+- [x] **`git_ignore = "hide" | "dim" | "show"`** [1]: old booleans still accepted; `-G` = `show`; dim = `DarkGrey` name, only with colors on.
+  - [ ] Optional: `--git-ignore=<mode>` CLI flag (now only via config / `[all]` / `[tree]`).
+  - Note: `-T` with `dim` and no `--depth` walks into ignored dirs like `target/`; tree collapse fixes that.
 - [ ] **Tree collapse** [2]
   - [ ] `collapse: Vec<String>` (globs) in config + `[tree]`.
   - [ ] `walker.rs`: matching dir → no `children`, mark collapsed.

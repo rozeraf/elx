@@ -163,3 +163,27 @@ fn ignored_files_and_collapsed_directories_show_ignored_status() {
     assert!(!output.contains("ignored"));
     assert!(!output.contains("cache"));
 }
+
+#[test]
+fn dim_mode_lists_ignored_entries_greyed_out() {
+    let repo = Repo::new();
+    repo.write("ignored", "ignored\n");
+    std::fs::create_dir_all(repo.0.join("config/elx")).unwrap();
+    std::fs::write(
+        repo.0.join("config/elx/config.toml"),
+        "git_ignore = \"dim\"\n",
+    )
+    .unwrap();
+    assert_eq!(status(&repo.list(&repo.path(), &[]), "ignored"), Some('!'));
+    for view in ["-1", "-l"] {
+        let output = repo
+            .command(env!("CARGO_BIN_EXE_elx"))
+            .args([view, "--no-icons", "--color", "--no-hyperlinks"])
+            .arg(repo.path())
+            .output()
+            .unwrap();
+        let stdout = String::from_utf8(output.stdout).unwrap();
+        assert!(stdout.contains("\x1b[38;5;8mignored"), "{view}: {stdout:?}");
+        assert!(!stdout.contains("\x1b[38;5;8mnested"), "{view}: {stdout:?}");
+    }
+}

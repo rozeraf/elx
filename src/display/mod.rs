@@ -6,7 +6,7 @@ pub mod tree;
 pub use formatter::{Cell, Column, ColumnFormatter};
 
 use crate::cli::Cli;
-use crate::config::{Config, HyperlinkConfig, ModeOverrides, PermissionsFormat};
+use crate::config::{Config, GitIgnoreMode, HyperlinkConfig, ModeOverrides, PermissionsFormat};
 use std::io::{IsTerminal, stdout};
 use terminal_size::{Width, terminal_size};
 
@@ -24,7 +24,7 @@ pub struct DisplayOptions {
     pub color: bool,
     pub hyperlinks: HyperlinkConfig,
     pub classify: bool,
-    pub git_ignore: bool,
+    pub git_ignore: GitIgnoreMode,
     pub one_per_line: bool,
     pub long_view: bool,
     pub depth: Option<usize>,
@@ -82,7 +82,7 @@ impl DisplayOptions {
             classify = true;
         }
         if cli.no_git_ignore {
-            git_ignore = false;
+            git_ignore = GitIgnoreMode::Show;
         }
         if cli.one_per_line {
             one_per_line = true;
@@ -119,7 +119,7 @@ impl DisplayOptions {
 mod tests {
     use super::DisplayOptions;
     use crate::cli::Cli;
-    use crate::config::{Config, ModeOverrides};
+    use crate::config::{Config, GitIgnoreMode, ModeOverrides};
     use clap::Parser;
 
     fn config() -> Config {
@@ -133,7 +133,7 @@ mod tests {
             },
             tree: ModeOverrides {
                 color: Some(true),
-                git_ignore: Some(false),
+                git_ignore: Some(GitIgnoreMode::Dim),
                 ignore: Some(vec!["target".into()]),
                 ..Default::default()
             },
@@ -149,28 +149,31 @@ mod tests {
     #[test]
     fn no_mode_uses_base_config() {
         let o = opts(&[], true);
-        assert!(!o.classify && o.color && o.git_ignore);
+        assert!(!o.classify && o.color);
+        assert_eq!(o.git_ignore, GitIgnoreMode::Hide);
         assert_eq!(o.ignore_globs, ["*.log"]);
     }
 
     #[test]
     fn all_mode_overrides_only_its_keys() {
         let o = opts(&["-a"], true);
-        assert!(o.classify && !o.color && o.git_ignore);
+        assert!(o.classify && !o.color);
+        assert_eq!(o.git_ignore, GitIgnoreMode::Hide);
         assert_eq!(o.ignore_globs, ["*.log"]);
     }
 
     #[test]
     fn tree_mode_replaces_ignore_list() {
         let o = opts(&["-T"], true);
-        assert!(!o.git_ignore);
+        assert_eq!(o.git_ignore, GitIgnoreMode::Dim);
         assert_eq!(o.ignore_globs, ["target"]);
     }
 
     #[test]
     fn tree_applies_after_all() {
         let o = opts(&["-aT"], true);
-        assert!(o.classify && o.color && !o.git_ignore);
+        assert!(o.classify && o.color);
+        assert_eq!(o.git_ignore, GitIgnoreMode::Dim);
     }
 
     #[test]
@@ -196,6 +199,11 @@ mod tests {
         let cli = Cli::try_parse_from(["elx"]).unwrap();
         let o = DisplayOptions::build(&cfg, &cli, false);
         assert!(!o.icons && o.color && !o.one_per_line);
+    }
+
+    #[test]
+    fn no_git_ignore_flag_overrides_dim() {
+        assert_eq!(opts(&["-T", "-G"], true).git_ignore, GitIgnoreMode::Show);
     }
 
     #[test]

@@ -74,7 +74,7 @@ fn main() -> Result<()> {
     let walker = Walker::new(
         &args.path,
         args.all,
-        options.git_ignore,
+        options.git_ignore == config::GitIgnoreMode::Hide,
         max_depth,
         options.ignore_globs.clone(),
     );
@@ -173,14 +173,7 @@ fn render_entries(
                 };
 
                 let safe_name = display::formatter::escape_terminal_text(&entry.name);
-                let name = if !options.color {
-                    safe_name.clone()
-                } else {
-                    theme
-                        .colors
-                        .colorize(&safe_name, &entry.metadata)
-                        .to_string()
-                };
+                let name = display::formatter::colored_name(theme, options, entry, &safe_name);
 
                 let suffix = if options.classify && entry.metadata.is_dir() {
                     "/"

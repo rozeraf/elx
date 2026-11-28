@@ -102,8 +102,8 @@ pub struct Config {
     pub color: bool,
     #[serde(default)]
     pub hyperlinks: HyperlinkConfig,
-    #[serde(default = "default_true")]
-    pub git_ignore: bool,
+    #[serde(default)]
+    pub git_ignore: GitIgnoreMode,
     #[serde(default)]
     pub ignore: Vec<String>,
     #[serde(default)]
@@ -128,7 +128,7 @@ impl Default for Config {
             icons: true,
             color: true,
             hyperlinks: HyperlinkConfig::default(),
-            git_ignore: true,
+            git_ignore: GitIgnoreMode::Hide,
             ignore: Vec::new(),
             classify: false,
             depth: None,
@@ -137,6 +137,42 @@ impl Default for Config {
             sort: SortConfig::default(),
             all: ModeOverrides::default(),
             tree: ModeOverrides::default(),
+        }
+    }
+}
+
+/// What to do with entries matched by `.gitignore`.
+#[derive(Deserialize, Serialize, Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case", from = "GitIgnoreValue")]
+pub enum GitIgnoreMode {
+    #[default]
+    Hide,
+    Dim,
+    Show,
+}
+
+/// Also accepts the old boolean form: `true` = hide, `false` = show.
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum GitIgnoreValue {
+    Bool(bool),
+    Name(GitIgnoreName),
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum GitIgnoreName {
+    Hide,
+    Dim,
+    Show,
+}
+
+impl From<GitIgnoreValue> for GitIgnoreMode {
+    fn from(value: GitIgnoreValue) -> Self {
+        match value {
+            GitIgnoreValue::Bool(true) | GitIgnoreValue::Name(GitIgnoreName::Hide) => Self::Hide,
+            GitIgnoreValue::Name(GitIgnoreName::Dim) => Self::Dim,
+            GitIgnoreValue::Bool(false) | GitIgnoreValue::Name(GitIgnoreName::Show) => Self::Show,
         }
     }
 }
@@ -196,7 +232,7 @@ pub struct ModeOverrides {
     pub icons: Option<bool>,
     pub color: Option<bool>,
     pub classify: Option<bool>,
-    pub git_ignore: Option<bool>,
+    pub git_ignore: Option<GitIgnoreMode>,
     pub ignore: Option<Vec<String>>,
     pub one_per_line: Option<bool>,
 }
@@ -243,8 +279,8 @@ icons = true
 # Use colors in output
 color = true
 
-# Respect .gitignore files
-git_ignore = true
+# Entries matched by .gitignore: "hide", "dim" (shown greyed out) or "show"
+git_ignore = "hide"
 
 # Global ignore patterns (glob)
 # Example: ignore = ["*.json", "node_modules", "bin"]
@@ -315,6 +351,7 @@ dotfiles_first = false
 # classify = true
 
 [tree]
+# git_ignore = "dim"
 # ignore = ["target", "node_modules"]
 
 [when_not_tty]
@@ -323,5 +360,40 @@ icons = false
 color = false
 one_per_line = true
 "#
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Config, GitIgnoreMode};
+    use figment::{
+        Figment,
+        providers::{Format, Toml},
+    };
+
+    fn parse(toml: &str) -> Config {
+        Figment::from(Toml::string(toml)).extract().unwrap()
+    }
+
+    #[test]
+    fn git_ignore_accepts_modes_and_old_booleans() {
+        for (value, mode) in [
+            ("\"hide\"", GitIgnoreMode::Hide),
+            ("\"dim\"", GitIgnoreMode::Dim),
+            ("\"show\"", GitIgnoreMode::Show),
+            ("true", GitIgnoreMode::Hide),
+            ("false", GitIgnoreMode::Show),
+        ] {
+            assert_eq!(parse(&format!("git_ignore = {value}")).git_ignore, mode);
+        }
+        assert_eq!(
+            parse("[tree]\ngit_ignore = \"dim\"").tree.git_ignore,
+            Some(GitIgnoreMode::Dim)
+        );
+    }
+
+    #[test]
+    fn default_template_parses() {
+        parse(Config::get_default_config_template());
     }
 }
