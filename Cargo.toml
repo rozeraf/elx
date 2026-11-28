@@ -5,7 +5,6 @@ edition = "2024"
 description = "Fast and customizable personal ls replacement written in Rust"
 license = "MIT"
 repository = "https://github.com/rozeraf/elx"
-homepage = "https://github.com/rozeraf/elx"
 readme = "README.md"
 
 [dependencies]
@@ -20,7 +19,5 @@ ignore = "0.4.25"
 regex = "1.12.3"
 serde = { version = "1.0.228", features = ["derive"] }
 terminal_size = "0.4.4"
-toml = "1.1.2"
-toml_edit = "0.22"
 unicode-width = "0.2.2"
 users = "0.11.0"
