@@ -30,6 +30,16 @@ impl Fixture {
         std::fs::write(self.0.join("files").join(name), content).unwrap();
     }
 
+    fn run(&self, args: &[&str]) -> std::process::Output {
+        Command::new(env!("CARGO_BIN_EXE_elx"))
+            .env("XDG_CONFIG_HOME", self.0.join("config"))
+            .args(["--no-icons", "--no-color", "--no-hyperlinks"])
+            .args(args)
+            .arg(self.0.join("files"))
+            .output()
+            .unwrap()
+    }
+
     fn list(&self, args: &[&str]) -> Vec<String> {
         self.list_at("", args)
     }
@@ -171,4 +181,25 @@ fn type_filters_in_tree_and_flat_views() {
     assert_eq!(list, ["top.txt"]);
     let list = fixture.list(&["-D", "--only", "b"]);
     assert_eq!(list, ["a", "b"]);
+}
+
+#[test]
+fn unreadable_directory_is_reported_and_the_rest_is_listed() {
+    use std::os::unix::fs::PermissionsExt;
+    let fixture = Fixture::new(&["locked/inner", "open/file"], "");
+    let locked = fixture.0.join("files/locked");
+    std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o000)).unwrap();
+    let output = fixture.run(&["-T"]);
+    std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o755)).unwrap();
+    if std::fs::read_dir(&locked).is_ok() && unsafe { libc::geteuid() } == 0 {
+        return; // root can read anything; nothing to test
+    }
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert_eq!(output.status.code(), Some(1), "{stdout}{stderr}");
+    assert!(stderr.contains("Permission denied"), "{stderr}");
+    assert!(
+        stdout.contains("locked") && stdout.contains("file"),
+        "{stdout}"
+    );
 }

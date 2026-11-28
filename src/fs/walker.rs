@@ -4,7 +4,8 @@ use crate::git::{GitStatus, find_repo, get_statuses, status_for_path};
 use anyhow::Result;
 use ignore::WalkBuilder;
 use ignore::gitignore::{Gitignore, GitignoreBuilder};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
 pub struct WalkOptions {
@@ -14,6 +15,8 @@ pub struct WalkOptions {
     pub ignore_files: bool,
     pub max_depth: usize,
     pub ignore_globs: Vec<String>,
+    /// The part of `ignore_globs` given on the command line, only used to explain hidden entries.
+    pub cli_ignore_globs: Vec<String>,
     pub collapse_globs: Vec<String>,
     /// Count entries the walk skipped (costs one extra `read_dir` per directory).
     pub count_hidden: bool,
@@ -22,15 +25,27 @@ pub struct WalkOptions {
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct HiddenCounts {
     pub dotfiles: usize,
+    /// Reported as ignored by `git status`.
     pub gitignored: usize,
-    /// Config/CLI patterns, `.elxignore` and `.ignore` files.
+    /// Config or `[all]`/`[tree]` patterns.
     pub pattern: usize,
+    /// `--ignore` on the command line.
+    pub cli_pattern: usize,
+    /// `.elxignore`/`.ignore` files, or tracked files matched by `.gitignore`.
+    pub ignore_files: usize,
 }
 
 impl HiddenCounts {
     pub fn total(&self) -> usize {
-        self.dotfiles + self.gitignored + self.pattern
+        self.dotfiles + self.gitignored + self.pattern + self.cli_pattern + self.ignore_files
     }
+}
+
+#[derive(Debug, Default)]
+pub struct WalkStats {
+    pub hidden: HiddenCounts,
+    /// Entries or directories that could not be read; already reported on stderr.
+    pub errors: usize,
 }
 
 pub struct Walker {
@@ -40,6 +55,7 @@ pub struct Walker {
 
 struct Matchers {
     ignore: Gitignore,
+    cli_ignore: Gitignore,
     collapse: Gitignore,
 }
 
@@ -60,7 +76,7 @@ impl Walker {
         }
     }
 
-    pub fn collect(&self) -> Result<(Vec<Entry>, HiddenCounts)> {
+    pub fn collect(&self) -> Result<(Vec<Entry>, WalkStats)> {
         let abs_root = self.path.canonicalize().unwrap_or(self.path.clone());
         let git_statuses = if let Some(repo_root) = find_repo(&abs_root) {
             // Ignored statuses also tell gitignored entries apart when counting hidden ones.
@@ -73,12 +89,13 @@ impl Walker {
 
         let matchers = Matchers {
             ignore: build_matcher(&self.path, &self.opts.ignore_globs)?,
+            cli_ignore: build_matcher(&self.path, &self.opts.cli_ignore_globs)?,
             collapse: build_matcher(&self.path, &self.opts.collapse_globs)?,
         };
 
-        let mut hidden = HiddenCounts::default();
-        let entries = self.collect_at(&self.path, 1, &git_statuses, &matchers, &mut hidden)?;
-        Ok((entries, hidden))
+        let mut stats = WalkStats::default();
+        let entries = self.collect_at(&self.path, 1, &git_statuses, &matchers, &mut stats);
+        Ok((entries, stats))
     }
 
     fn count_hidden(
@@ -86,25 +103,33 @@ impl Walker {
         path: &Path,
         shown: &[Entry],
         git_statuses: &HashMap<PathBuf, GitStatus>,
+        matchers: &Matchers,
         hidden: &mut HiddenCounts,
     ) {
         let Ok(dir) = std::fs::read_dir(path) else {
             return;
         };
+        let shown: HashSet<OsString> = shown
+            .iter()
+            .filter_map(|e| e.path.file_name().map(OsString::from))
+            .collect();
         for dirent in dir.flatten() {
             let name = dirent.file_name();
-            if shown
-                .iter()
-                .any(|e| e.path.file_name() == Some(name.as_os_str()))
-            {
+            if shown.contains(&name) {
                 continue;
             }
+            let entry_path = dirent.path();
+            let is_dir = dirent.file_type().is_ok_and(|t| t.is_dir());
             if !self.opts.show_hidden && name.as_encoded_bytes().starts_with(b".") {
                 hidden.dotfiles += 1;
-            } else if status_for_path(git_statuses, &dirent.path()) == Some(GitStatus::Ignored) {
+            } else if status_for_path(git_statuses, &entry_path) == Some(GitStatus::Ignored) {
                 hidden.gitignored += 1;
-            } else {
+            } else if matchers.cli_ignore.matched(&entry_path, is_dir).is_ignore() {
+                hidden.cli_pattern += 1;
+            } else if matchers.ignore.matched(&entry_path, is_dir).is_ignore() {
                 hidden.pattern += 1;
+            } else {
+                hidden.ignore_files += 1;
             }
         }
     }
@@ -115,8 +140,8 @@ impl Walker {
         current_depth: usize,
         git_statuses: &HashMap<PathBuf, GitStatus>,
         matchers: &Matchers,
-        hidden: &mut HiddenCounts,
-    ) -> Result<Vec<Entry>> {
+        stats: &mut WalkStats,
+    ) -> Vec<Entry> {
         let mut entries = Vec::new();
 
         let hide_git_ignored = self.opts.git_ignore == GitIgnoreMode::Hide;
@@ -137,15 +162,30 @@ impl Walker {
             builder.add_custom_ignore_filename(".elxignore");
         }
 
+        // Like ls: report unreadable entries and keep listing the rest.
         for result in builder.build() {
-            let ignore_entry = result?;
+            let ignore_entry = match result {
+                Ok(e) => e,
+                Err(err) => {
+                    eprintln!("elx: {err}");
+                    stats.errors += 1;
+                    continue;
+                }
+            };
             let entry_path = ignore_entry.path().to_path_buf();
 
             if entry_path == path {
                 continue;
             }
 
-            let mut entry = Entry::from_path(entry_path.clone())?;
+            let mut entry = match Entry::from_path(entry_path.clone()) {
+                Ok(e) => e,
+                Err(err) => {
+                    eprintln!("elx: {}: {err}", entry_path.display());
+                    stats.errors += 1;
+                    continue;
+                }
+            };
             entry.git_status = status_for_path(git_statuses, &entry.abs_path);
 
             if entry.metadata.is_dir() && current_depth < self.opts.max_depth {
@@ -158,17 +198,17 @@ impl Walker {
                         current_depth + 1,
                         git_statuses,
                         matchers,
-                        hidden,
-                    )?);
+                        stats,
+                    ));
                 }
             }
             entries.push(entry);
         }
 
         if self.opts.count_hidden {
-            self.count_hidden(path, &entries, git_statuses, hidden);
+            self.count_hidden(path, &entries, git_statuses, matchers, &mut stats.hidden);
         }
-        Ok(entries)
+        entries
     }
 }
 
@@ -186,12 +226,13 @@ mod tests {
                 git_ignore,
                 ignore_files: true,
                 max_depth: usize::MAX,
-                ignore_globs: vec!["*.log".into()],
+                ignore_globs: vec!["*.log".into(), "*.tmp".into()],
+                cli_ignore_globs: vec!["*.tmp".into()],
                 collapse_globs: vec!["collapsed".into()],
                 count_hidden: true,
             },
         );
-        walker.collect().unwrap().1
+        walker.collect().unwrap().1.hidden
     }
 
     #[test]
@@ -204,6 +245,7 @@ mod tests {
             ("a.log", ""),
             ("secret", ""),
             ("visible", ""),
+            ("x.tmp", ""),
             ("sub/.hidden", ""),
             ("sub/b.log", ""),
             ("collapsed/.x", ""),
@@ -233,7 +275,9 @@ mod tests {
             HiddenCounts {
                 dotfiles: 4,
                 gitignored: 1,
-                pattern: 3,
+                pattern: 2,
+                cli_pattern: 1,
+                ignore_files: 1,
             }
         );
         assert_eq!(dim.gitignored, 0);

@@ -105,6 +105,7 @@ fn main() -> Result<()> {
             ignore_files: options.ignore_files,
             max_depth,
             ignore_globs: options.ignore_globs.clone(),
+            cli_ignore_globs: args.ignore.clone(),
             collapse_globs: options.collapse_globs.clone(),
             count_hidden: options.hidden_summary,
         },
@@ -126,13 +127,13 @@ fn main() -> Result<()> {
         dirs_only: args.dirs_only,
         files_only: args.files_only,
     };
-    let (entries, hidden) = walker.collect()?;
+    let (entries, stats) = walker.collect()?;
     let mut entries = filter.apply(entries);
     sort_entries(&mut entries, &sort_opts);
 
     render_entries(entries, &args, &config, &options, &theme);
     if options.hidden_summary
-        && let Some(summary) = hidden_summary(&hidden)
+        && let Some(summary) = hidden_summary(&stats.hidden)
     {
         if options.color {
             use crossterm::style::{Color, Stylize};
@@ -142,6 +143,11 @@ fn main() -> Result<()> {
         }
     }
 
+    if stats.errors > 0 {
+        // process::exit skips destructors, so flush buffered (piped) output first.
+        let _ = std::io::Write::flush(&mut std::io::stdout());
+        std::process::exit(1);
+    }
     Ok(())
 }
 
@@ -228,13 +234,15 @@ dotfiles_first = {dotfiles_first}
 
 fn hidden_summary(hidden: &HiddenCounts) -> Option<String> {
     let parts: Vec<String> = [
-        (hidden.dotfiles, "dotfiles", "-a"),
-        (hidden.gitignored, "gitignored", "-G"),
-        (hidden.pattern, "by pattern", "-u"),
+        (hidden.dotfiles, "dotfiles", " (-a)"),
+        (hidden.gitignored, "gitignored", " (-G)"),
+        (hidden.pattern, "by config pattern", " (--no-config-ignore)"),
+        (hidden.ignore_files, "by ignore files", " (-u)"),
+        (hidden.cli_pattern, "by --ignore", ""),
     ]
     .into_iter()
     .filter(|(count, _, _)| *count > 0)
-    .map(|(count, what, flag)| format!("{count} {what} ({flag})"))
+    .map(|(count, what, hint)| format!("{count} {what}{hint}"))
     .collect();
     (!parts.is_empty()).then(|| format!("{} hidden: {}", hidden.total(), parts.join(", ")))
 }
@@ -380,12 +388,15 @@ mod tests {
         assert_eq!(hidden_summary(&HiddenCounts::default()), None);
         let counts = HiddenCounts {
             dotfiles: 3,
-            gitignored: 0,
             pattern: 2,
+            cli_pattern: 1,
+            ..Default::default()
         };
         assert_eq!(
             hidden_summary(&counts).as_deref(),
-            Some("5 hidden: 3 dotfiles (-a), 2 by pattern (-u)")
+            Some(
+                "6 hidden: 3 dotfiles (-a), 2 by config pattern (--no-config-ignore), 1 by --ignore"
+            )
         );
     }
 
