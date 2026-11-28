@@ -56,7 +56,8 @@ also works for an explicitly listed file and through directory symlinks.
   leading to a match stay, empty branches are dropped. `elx -T --changed` gives an overview of what changed in a repo.
 - **Hidden Summary:** In a terminal, a line below the listing tells what was hidden and how to show it, e.g.
   `4 hidden: 3 dotfiles (-a), 1 gitignored (-G)`. Other reasons: config patterns (`--no-config-ignore`),
-  ignore files such as `.elxignore` (`-u`) and your own `--ignore`. Disable with `show_hidden_summary = false`.
+  ignore files such as `.elxignore` (`-u`) and your own `--ignore`. When the listing is piped or redirected, the
+  line goes to stderr instead (only if stderr is a terminal). Disable with `show_hidden_summary = false`.
 - **Show Everything:** `-u`/`--unrestricted` (or `-aa`) turns off all filtering: dotfiles, `.gitignore`,
   `.elxignore`/`.ignore` and config patterns. Explicit `--ignore` and `--git-ignore` still apply.
 - **Tree Collapse:** In tree view, directories matching `collapse` patterns (gitignore syntax) are shown as

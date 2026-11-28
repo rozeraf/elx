@@ -311,7 +311,8 @@ classify = false
 # Example: collapse = ["target", "node_modules", ".git"]
 collapse = []
 
-# Print how many entries were hidden and why below the listing (terminal output only)
+# Print how many entries were hidden and why below the listing
+# (on stderr when the output is piped; never when neither stdout nor stderr is a terminal)
 show_hidden_summary = true
 
 # Default recursion depth for tree view (uncomment to set)

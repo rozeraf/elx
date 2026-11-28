@@ -219,7 +219,10 @@ directories in grid/long view) are kept only if they pass themselves. So
 
 ### 5.6 Hidden-entries footer
 
-When stdout is a terminal and `show_hidden_summary = true`, a dark grey line follows the listing:
+When `show_hidden_summary = true`, a line reports what the listing left out. If stdout is a terminal it
+follows the listing in dark grey; if stdout is piped or redirected but stderr is a terminal, it goes to
+stderr (uncolored), so `elx | grep` and `elx > list.txt` do not lose entries silently. With neither a
+terminal, nothing is printed.
 
 ```
 4 hidden: 3 dotfiles (-a), 1 gitignored (-G)

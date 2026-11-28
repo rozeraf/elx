@@ -9,7 +9,7 @@ use crate::cli::Cli;
 use crate::config::{
     Config, GitIgnoreMode, GroupDirs, HyperlinkConfig, ModeOverrides, PermissionsFormat,
 };
-use std::io::{IsTerminal, stdout};
+use std::io::{IsTerminal, stderr, stdout};
 use terminal_size::{Width, terminal_size};
 
 pub fn get_terminal_width() -> usize {
@@ -41,7 +41,12 @@ pub struct DisplayOptions {
 
 impl DisplayOptions {
     pub fn new(config: &Config, cli: &Cli) -> Self {
-        Self::build(config, cli, stdout().is_terminal())
+        let mut options = Self::build(config, cli, stdout().is_terminal());
+        // Piped output still says what it left out, on stderr, as long as someone is watching it.
+        if config.show_hidden_summary && !stdout().is_terminal() && stderr().is_terminal() {
+            options.hidden_summary = true;
+        }
+        options
     }
 
     fn build(config: &Config, cli: &Cli, is_tty: bool) -> Self {

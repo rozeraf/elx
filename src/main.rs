@@ -139,7 +139,9 @@ fn main() -> Result<()> {
     if options.hidden_summary
         && let Some(summary) = hidden_summary(&stats.hidden)
     {
-        if options.color {
+        if !std::io::IsTerminal::is_terminal(&std::io::stdout()) {
+            eprintln!("{summary}");
+        } else if options.color {
             use crossterm::style::{Color, Stylize};
             println!("{}", summary.with(Color::DarkGrey));
         } else {
