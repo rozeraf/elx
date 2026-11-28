@@ -68,6 +68,18 @@ fn file_operands_keep_their_path_and_a_single_directory_has_no_header() {
 }
 
 #[test]
+fn directory_operands_sort_by_the_path_as_given_and_empty_is_missing() {
+    let fixture = Fixture::new();
+    std::fs::create_dir_all(fixture.0.join("z/a")).unwrap();
+    std::fs::create_dir_all(fixture.0.join("b")).unwrap();
+    let (out, _, _) = fixture.run(&["z/a", "b"]);
+    assert_eq!(out, "b:\n\nz/a:\n");
+    let (_, err, code) = fixture.run(&[""]);
+    assert_eq!(code, 1);
+    assert!(err.contains("cannot access ''"), "{err}");
+}
+
+#[test]
 fn missing_operands_are_reported_and_the_rest_is_listed() {
     let fixture = Fixture::new();
     let (out, err, code) = fixture.run(&["a.toml", "missing", "src"]);

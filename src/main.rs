@@ -82,7 +82,7 @@ fn main() -> Result<()> {
     let mut errors = 0;
     let mut files = Vec::new();
     let mut dirs = Vec::new();
-    for path in &args.paths {
+    for path in args.paths.iter().map(std::path::PathBuf::from) {
         if !path.exists() && !path.is_symlink() {
             eprintln!(
                 "elx: cannot access '{}': No such file or directory",
@@ -92,7 +92,11 @@ fn main() -> Result<()> {
             continue;
         }
         match fs::entry::Entry::from_path(path.clone()) {
-            Ok(entry) if path.is_dir() => dirs.push(entry),
+            // Operands sort by the path as given, like ls (elx z/a b lists b first).
+            Ok(mut entry) if path.is_dir() => {
+                entry.name = path.to_string_lossy().into_owned();
+                dirs.push(entry);
+            }
             Ok(mut entry) => {
                 // Show file operands as given, like ls (elx src/main.rs prints src/main.rs).
                 entry.name = path.to_string_lossy().into_owned();

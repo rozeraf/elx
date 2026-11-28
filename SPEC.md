@@ -27,7 +27,8 @@ elx [OPTIONS] [PATH]...
 - File operands (anything that is not a directory) are shown first, as one list in the selected
   view, sorted with the normal sort options and printed with the path as given (`src/main.rs`),
   with their git status. `--only`, `--changed`, `-D` and `--files-only` do not apply to them.
-- Then each directory operand, sorted the same way. With more than one operand, each directory
+- Then each directory operand, sorted the same way, by the path as given (`elx z/a b` lists `b`
+  first). An empty operand (`elx ''`) is reported as missing. With more than one operand, each directory
   listing is preceded by a `<path>:` line and separated by a blank line. In tree view each
   directory gets its own tree.
 - The hidden-entries footer (section 5.6) is printed once, with counts summed over all directories.

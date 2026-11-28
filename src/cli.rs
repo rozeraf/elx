@@ -1,14 +1,14 @@
 use crate::config::{GitIgnoreMode, SortKey};
 use clap::Parser;
-use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[command(name = "elx", version)]
 #[command(about = "A personal ls-clone in Rust with Git integration and Tree view", long_about = None)]
 pub struct Cli {
     /// Directories or files to list
+    // OsString, not PathBuf: clap rejects an empty PathBuf, while ls reports `ls ''` as missing.
     #[arg(default_value = ".", value_name = "PATH")]
-    pub paths: Vec<PathBuf>,
+    pub paths: Vec<std::ffi::OsString>,
 
     /// Use long listing format (includes Git status)
     #[arg(short = 'l', long)]
