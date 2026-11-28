@@ -45,5 +45,6 @@ filtering via `ignore`, layered config via `figment`.
 - Behaviour references: eza, lsd, GNU coreutils `ls.c` (look up specific parts, don't port wholesale).
 
 ## Context files
+- `SPEC.md`: full behaviour specification; update it together with any user-visible change.
 - `todo.md`: task checklist.
 - `filtering-ux.md`: design notes (in Russian) behind the filtering/UX features; implemented, see `todo.md` for what changed vs the plan.
