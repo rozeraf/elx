@@ -245,8 +245,11 @@ terminal, nothing is printed.
 4 hidden: 3 dotfiles (-a), 1 gitignored (-G)
 ```
 
-Reasons, with the flag that reveals them: `dotfiles (-a)`, `gitignored (-G)`,
-`by config pattern (--no-config-ignore)`, `by ignore files (-u)`, `by --ignore`.
+Reasons, in the order they are checked, with the flag that reveals them: `dotfiles (-a)`,
+`gitignored (-G)` (only while gitignored entries are actually hidden), `by --ignore`,
+`by config pattern (--no-config-ignore)`, `by ignore files (-u)`. An entry matching both a
+`--ignore` and a config pattern counts as `by --ignore`, since `--no-config-ignore` would not
+reveal it. Entries that could not be read are reported as errors, not counted here.
 Only non-zero reasons appear; nothing is printed when nothing was hidden. Each entry is counted
 once, under the first reason in that order. Counted per listed directory, including every
 directory walked in tree view, but not inside collapsed directories or beyond `--depth`.
