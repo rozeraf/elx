@@ -121,8 +121,11 @@ Among `-t -S -X -v -U --sort`, the last one on the command line wins.
 5. Command-line flags, which always win.
 
 A config that fails to parse (syntax error, unknown key, wrong type) prints
-`elx: config error: ...` on stderr and elx continues with built-in defaults.
-All tables reject unknown keys.
+`elx: config error: ...` and `elx: all settings ignored, using built-in defaults` on stderr, and
+elx continues with built-in defaults for the whole config, not just the bad key. The listing and
+the exit status are unaffected (0 if nothing else failed), so a broken config does not break
+scripts or prompts that call elx. All tables reject unknown keys, so a typo, or a config written
+for a newer elx (e.g. a key added in a later version), triggers this.
 
 ### 4.2 Top-level keys
 

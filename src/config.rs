@@ -306,7 +306,9 @@ impl Config {
             .merge(Env::prefixed("ELX_"))
             .extract()
             .unwrap_or_else(|e| {
-                eprintln!("elx: config error: {}", e);
+                // Listing still works (exit status unaffected), but every setting is lost: say so.
+                eprintln!("elx: config error: {e}");
+                eprintln!("elx: all settings ignored, using built-in defaults");
                 Config::default()
             })
     }
