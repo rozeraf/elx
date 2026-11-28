@@ -5,12 +5,13 @@ Order matters: later items build on earlier ones.
 
 ## Cleanup (quick)
 
-- [ ] Fix README `[hyperlinks]` example: uses `directories`, `underline_*`, `exclude_env`, which `HyperlinkConfig` doesn't have (`deny_unknown_fields` → config fails to load). Use `dirs`, `executables`.
-- [ ] Remove unused `toml` dependency from `Cargo.toml`. Check whether `toml_edit` is still used after the config_updater removal.
-- [ ] Remove redundant `homepage` from `Cargo.toml` (clippy `redundant_homepage`).
-- [ ] `src/sort.rs:195`: `sort_entries(entries: &mut Vec<Entry>)` → `&mut [Entry]` (clippy `ptr_arg`).
-- [ ] Run `cargo fmt` once on `cli.rs` and `sort.rs` in a separate `style:` commit so later diffs stay clean.
-- [ ] Translate remaining Russian comments in `cli.rs`, `config.rs`, `sort.rs`, `formatter.rs` to English.
+- [x] Fix README `[hyperlinks]` example: uses `directories`, `underline_*`, `exclude_env`, which `HyperlinkConfig` doesn't have (`deny_unknown_fields` → config fails to load). Use `dirs`, `executables`.
+- [x] Remove unused `toml` dependency from `Cargo.toml`. Check whether `toml_edit` is still used after the config_updater removal.
+- [x] Remove redundant `homepage` from `Cargo.toml` (clippy `redundant_homepage`).
+- [x] `src/sort.rs:195`: `sort_entries(entries: &mut Vec<Entry>)` → `&mut [Entry]` (clippy `ptr_arg`).
+- [x] Run `cargo fmt` once on `cli.rs` and `sort.rs` in a separate `style:` commit so later diffs stay clean.
+- [x] Translate remaining Russian comments in `cli.rs`, `config.rs`, `sort.rs`, `formatter.rs` to English.
+- [ ] `-tr` / `-Sr` should flip the order like `ls` (oldest/smallest first); now `-r` just sets `reverse = true`, which `-t`/`-S` already set, so it does nothing (`build_sort_options` in `main.rs`).
 - [ ] Optional: restore distinct colors for setuid/setgid (magenta) and sticky (cyan) in `format_permissions_colored` (lost in the v0.1.2 merge; now same green as `x`).
 - [ ] User side: remove `schema_version` from `~/.config/elx/config.toml` (field was dropped in `8c48690`).
 
