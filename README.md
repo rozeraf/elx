@@ -56,6 +56,26 @@ elx --init-config
 
 The config file is located at `~/.config/elx/config.toml`.
 
+### Per-mode overrides
+
+Sections `[all]` (active with `-a`) and `[tree]` (active with `-T`) override top-level keys while the mode is on.
+Unset keys inherit the top-level value; `ignore` replaces the global list instead of extending it.
+Supported keys: `icons`, `color`, `classify`, `git_ignore`, `ignore`.
+
+```toml
+classify = false
+
+[all]
+classify = true
+color = false
+
+[tree]
+git_ignore = false
+ignore = ["target", "node_modules"]
+```
+
+Order: top-level → `[all]` → `[tree]` → `[when_not_tty]` → CLI flags (CLI always wins).
+
 ### Hyperlinks (OSC 8)
 
 One of the unique features of `elx` is configurable support for terminal hyperlinks. You can control which entry types become links:

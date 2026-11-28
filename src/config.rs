@@ -116,6 +116,10 @@ pub struct Config {
     pub when_not_tty: WhenNotTty,
     #[serde(default)]
     pub sort: SortConfig,
+    #[serde(default)]
+    pub all: ModeOverrides,
+    #[serde(default)]
+    pub tree: ModeOverrides,
 }
 
 impl Default for Config {
@@ -131,6 +135,8 @@ impl Default for Config {
             long: LongConfig::default(),
             when_not_tty: WhenNotTty::default(),
             sort: SortConfig::default(),
+            all: ModeOverrides::default(),
+            tree: ModeOverrides::default(),
         }
     }
 }
@@ -201,6 +207,18 @@ impl Default for WhenNotTty {
             one_per_line: true,
         }
     }
+}
+
+/// Keys left unset inherit the base value. `ignore` replaces the base list instead of extending it,
+/// so a mode can drop a pattern.
+#[derive(Deserialize, Serialize, Debug, Default)]
+#[serde(deny_unknown_fields)]
+pub struct ModeOverrides {
+    pub icons: Option<bool>,
+    pub color: Option<bool>,
+    pub classify: Option<bool>,
+    pub git_ignore: Option<bool>,
+    pub ignore: Option<Vec<String>>,
 }
 
 fn default_true() -> bool {
@@ -300,6 +318,15 @@ group_dirs = "first"
 
 # Show dotfiles (names starting with .) before regular entries in their group
 dotfiles_first = false
+
+# Per-mode overrides: keys set here replace the values above while the mode is active.
+# Applied in order: [all] (-a), [tree] (-T), [when_not_tty], then CLI flags.
+# Supported keys: icons, color, classify, git_ignore, ignore (replaces the global list).
+[all]
+# classify = true
+
+[tree]
+# ignore = ["target", "node_modules"]
 
 [when_not_tty]
 # Configuration for when output is redirected (e.g., to a file or pipe)

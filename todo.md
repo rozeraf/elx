@@ -17,14 +17,8 @@ Order matters: later items build on earlier ones.
 
 ## Filtering
 
-- [ ] **Per-mode overrides `[all]` / `[tree]`** [0]
-  - [ ] `ModeOverrides` struct in `config.rs`, all fields `Option<T>`: `icons`, `color`, `classify`, `git_ignore` first.
-  - [ ] `Config` gets `all: ModeOverrides`, `tree: ModeOverrides`.
-  - [ ] Move `when_not_tty` onto the same struct (keep current keys working).
-  - [ ] `DisplayOptions::new`: base → `[all]` (if `-a`) → `[tree]` (if `-T`) → `[when_not_tty]` → CLI.
-  - [ ] Lists (`ignore`, `collapse`) replace, not extend.
-  - [ ] Update `get_default_config_template()` and README.
-  - [ ] Tests: precedence for `-a`, `-T`, `-aT`, non-TTY, CLI override.
+- [x] **Per-mode overrides `[all]` / `[tree]`** [0]: `ModeOverrides` with `icons`, `color`, `classify`, `git_ignore`, `ignore` (replaces). `collapse` gets added with tree collapse.
+  - [ ] Decide whether to move `[when_not_tty]` onto `ModeOverrides`. Kept separate for now: its missing keys default to `false`, not "inherit", so merging would change behaviour for existing configs.
 - [ ] **`git_ignore = "hide" | "dim" | "show"`** [1]
   - [ ] Enum in `config.rs`; `true` → `hide`, `false` → `show` for old configs.
   - [ ] Walker: `git_ignore(false)` for `dim`/`show`.

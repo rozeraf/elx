@@ -23,7 +23,7 @@ filtering via `ignore`, layered config via `figment`.
 ## Architecture
 - `src/cli.rs`: clap definitions. Short flags in use: `l a T F G 1 o t S X v U r`.
 - `src/config.rs`: `Config` + `get_default_config_template()` (the `--init-config` output).
-- `src/display/mod.rs`: `DisplayOptions::new` merges config → `when_not_tty` → CLI flags. Put new override logic here.
+- `src/display/mod.rs`: `DisplayOptions::build` merges config → `[all]` → `[tree]` → `when_not_tty` → CLI flags (unit-tested there, `is_tty` passed in). Put new override logic here.
 - `src/fs/walker.rs`: one `WalkBuilder` per directory level (depth 1), recursion done manually; `--ignore` globs become `!glob` overrides.
 - `src/sort.rs`: all sorting. The walker does not sort.
 - `src/git.rs`: status map keyed by canonical absolute path.
