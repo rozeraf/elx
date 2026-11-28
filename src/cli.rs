@@ -112,27 +112,27 @@ pub struct Cli {
     pub octal: bool,
 
     /// Sort by key
-    #[arg(long, value_name = "KEY", value_enum)]
+    #[arg(long, value_name = "KEY", value_enum, overrides_with_all = ["sort_time", "sort_size", "sort_extension", "sort_natural", "sort_none"])]
     pub sort: Option<SortKey>,
 
     /// Sort by modification time, newest first (shorthand: --sort=modified --reverse)
-    #[arg(short = 't', conflicts_with = "sort")]
+    #[arg(short = 't', overrides_with_all = ["sort", "sort_size", "sort_extension", "sort_natural", "sort_none"])]
     pub sort_time: bool,
 
     /// Sort by size, largest first (shorthand: --sort=size --reverse)
-    #[arg(short = 'S', conflicts_with = "sort")]
+    #[arg(short = 'S', overrides_with_all = ["sort", "sort_time", "sort_extension", "sort_natural", "sort_none"])]
     pub sort_size: bool,
 
     /// Sort by file extension (shorthand: --sort=extension)
-    #[arg(short = 'X', conflicts_with = "sort")]
+    #[arg(short = 'X', overrides_with_all = ["sort", "sort_time", "sort_size", "sort_natural", "sort_none"])]
     pub sort_extension: bool,
 
     /// Natural sort of version numbers (shorthand: --sort=name_natural)
-    #[arg(short = 'v', conflicts_with = "sort")]
+    #[arg(short = 'v', overrides_with_all = ["sort", "sort_time", "sort_size", "sort_extension", "sort_none"])]
     pub sort_natural: bool,
 
     /// No sorting, filesystem order (shorthand: --sort=none)
-    #[arg(short = 'U', conflicts_with = "sort")]
+    #[arg(short = 'U', overrides_with_all = ["sort", "sort_time", "sort_size", "sort_extension", "sort_natural"])]
     pub sort_none: bool,
 
     /// Reverse sort order
@@ -239,6 +239,23 @@ impl Cli {
 mod tests {
     use super::Cli;
     use clap::Parser;
+
+    #[test]
+    fn last_sort_option_wins_like_ls() {
+        let key = |args: &[&str]| {
+            Cli::try_parse_from(std::iter::once("elx").chain(args.iter().copied()))
+                .unwrap()
+                .resolve_sort_key()
+        };
+        use super::SortKey;
+        assert_eq!(key(&["-t", "-S"]), (Some(SortKey::Size), true));
+        assert_eq!(key(&["-S", "-t"]), (Some(SortKey::Modified), true));
+        assert_eq!(key(&["-t", "--sort", "name"]), (Some(SortKey::Name), false));
+        assert_eq!(
+            key(&["--sort", "size", "-X"]),
+            (Some(SortKey::Extension), false)
+        );
+    }
 
     #[test]
     fn sort_rejects_unknown_keys_and_accepts_snake_case() {
