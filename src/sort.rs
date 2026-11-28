@@ -146,8 +146,8 @@ fn compare_entries(a: &Entry, b: &Entry, opts: &SortOptions) -> std::cmp::Orderi
 
     // Grouping (dirs, dotfiles) is never affected by reverse.
     if opts.group_dirs != GroupDirs::Mixed {
-        let a_dir = a.metadata.is_dir();
-        let b_dir = b.metadata.is_dir();
+        let a_dir = a.metadata.is_dir() || a.links_to_dir;
+        let b_dir = b.metadata.is_dir() || b.links_to_dir;
         if a_dir != b_dir {
             return match opts.group_dirs {
                 GroupDirs::First => {
@@ -218,5 +218,29 @@ pub fn sort_entries(entries: &mut [Entry], opts: &SortOptions) {
         if let Some(children) = &mut entry.children {
             sort_entries(children, opts);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{SortOptions, sort_entries};
+    use crate::config::SortConfig;
+    use crate::fs::entry::Entry;
+
+    #[test]
+    fn symlinks_to_directories_group_with_directories() {
+        let root = std::env::temp_dir().join(format!("elx-sort-test-{}", std::process::id()));
+        std::fs::create_dir_all(root.join("zdir")).unwrap();
+        std::fs::write(root.join("afile"), "").unwrap();
+        std::os::unix::fs::symlink("zdir", root.join("blink")).unwrap();
+        std::os::unix::fs::symlink("afile", root.join("cfilelink")).unwrap();
+        let mut entries: Vec<Entry> = ["afile", "blink", "cfilelink", "zdir"]
+            .iter()
+            .map(|name| Entry::from_path(root.join(name)).unwrap())
+            .collect();
+        sort_entries(&mut entries, &SortOptions::from(&SortConfig::default()));
+        std::fs::remove_dir_all(&root).unwrap();
+        let names: Vec<&str> = entries.iter().map(|e| e.name.as_str()).collect();
+        assert_eq!(names, ["blink", "zdir", "afile", "cfilelink"]);
     }
 }

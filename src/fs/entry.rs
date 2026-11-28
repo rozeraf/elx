@@ -10,6 +10,8 @@ pub struct Entry {
     pub metadata: Metadata,
     pub name: String,
     pub link_target: Option<PathBuf>,
+    /// Symlink whose target is a directory; grouped with directories like `ls --group-directories-first`.
+    pub links_to_dir: bool,
     pub children: Option<Vec<Entry>>,
     pub git_status: Option<GitStatus>,
     /// Directory matched a collapse pattern: its children were not read, only counted.
@@ -33,7 +35,11 @@ impl Entry {
             None
         };
 
+        let links_to_dir =
+            link_target.is_some() && std::fs::metadata(&path).is_ok_and(|m| m.is_dir());
+
         Ok(Self {
+            links_to_dir,
             path,
             abs_path,
             metadata,
