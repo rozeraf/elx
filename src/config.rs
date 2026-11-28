@@ -48,7 +48,7 @@ pub enum SortKey {
     None,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize, Serialize, clap::ValueEnum)]
 #[serde(rename_all = "snake_case")]
 pub enum GroupDirs {
     #[default]
@@ -185,7 +185,7 @@ impl From<GitIgnoreValue> for GitIgnoreMode {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Deserialize, Serialize, Debug, Clone, Copy, PartialEq, Default, clap::ValueEnum)]
 #[serde(rename_all = "snake_case")]
 pub enum PermissionsFormat {
     #[default]

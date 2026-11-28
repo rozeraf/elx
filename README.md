@@ -74,6 +74,9 @@ elx --init-config
 
 The config file is located at `~/.config/elx/config.toml`.
 
+To check what a given command line actually uses, run `elx --print-config [flags]`: it prints the settings after
+merging the config file, the active sections and the flags.
+
 ### Per-mode overrides
 
 Sections `[all]` (active with `-a`), `[tree]` (active with `-T`) and `[when_not_tty]` (output redirected to a file or pipe) override top-level keys while the mode is on.

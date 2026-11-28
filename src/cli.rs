@@ -162,6 +162,10 @@ pub struct Cli {
     /// Generate a default configuration file
     #[arg(long)]
     pub init_config: bool,
+
+    /// Print the settings in effect for this invocation (config, sections and flags merged) and exit
+    #[arg(long)]
+    pub print_config: bool,
 }
 
 impl Cli {

@@ -62,6 +62,13 @@ fn main() -> Result<()> {
     }
 
     let options = DisplayOptions::new(&config, &args);
+    if args.print_config {
+        print!(
+            "{}",
+            effective_config(&options, &build_sort_options(&config, &args), &args)
+        );
+        return Ok(());
+    }
     let theme = Theme::new();
 
     if !args.path.is_dir() {
@@ -127,6 +134,87 @@ fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+fn value_name<T: clap::ValueEnum>(value: T) -> String {
+    value
+        .to_possible_value()
+        .map(|v| format!("{:?}", v.get_name()))
+        .unwrap_or_default()
+}
+
+fn effective_config(options: &DisplayOptions, sort: &SortOptions, args: &Cli) -> String {
+    let path = Config::get_config_path();
+    let state = if path.exists() { "" } else { " (not found)" };
+    let sections: Vec<&str> = [
+        (args.show_hidden(), "[all]"),
+        (args.tree, "[tree]"),
+        (
+            !std::io::IsTerminal::is_terminal(&std::io::stdout()),
+            "[when_not_tty]",
+        ),
+    ]
+    .into_iter()
+    .filter_map(|(on, name)| on.then_some(name))
+    .collect();
+    let active = if sections.is_empty() {
+        "none".to_string()
+    } else {
+        sections.join(", ")
+    };
+    let depth = options.depth.map_or_else(
+        || "# depth = unlimited".to_string(),
+        |d| format!("depth = {d}"),
+    );
+    let secondary = sort.secondary_by.map_or_else(
+        || "# secondary_by = (none)".to_string(),
+        |k| format!("secondary_by = {}", value_name(k)),
+    );
+    format!(
+        "# Effective settings for this invocation, not a config file.
+# config: {path}{state}
+# active sections: {active}
+icons = {icons}
+color = {color}
+hyperlinks = {hyperlinks}
+classify = {classify}
+one_per_line = {one_per_line}
+git_ignore = {git_ignore}
+show_hidden = {show_hidden}
+ignore_files = {ignore_files}
+ignore = {ignore:?}
+collapse = {collapse:?}
+show_hidden_summary = {summary}
+{depth}
+permissions_format = {permissions}
+
+[sort]
+by = {by}
+{secondary}
+ignore_case = {ignore_case}
+reverse = {reverse}
+group_dirs = {group_dirs}
+dotfiles_first = {dotfiles_first}
+",
+        path = path.display(),
+        icons = options.icons,
+        color = options.color,
+        hyperlinks = options.hyperlinks.enabled,
+        classify = options.classify,
+        one_per_line = options.one_per_line,
+        git_ignore = value_name(options.git_ignore),
+        show_hidden = options.show_hidden,
+        ignore_files = options.ignore_files,
+        ignore = options.ignore_globs,
+        collapse = options.collapse_globs,
+        summary = options.hidden_summary,
+        permissions = value_name(options.permissions_format),
+        by = value_name(sort.by),
+        ignore_case = sort.ignore_case,
+        reverse = sort.reverse,
+        group_dirs = value_name(sort.group_dirs),
+        dotfiles_first = sort.dotfiles_first,
+    )
 }
 
 fn hidden_summary(hidden: &HiddenCounts) -> Option<String> {
