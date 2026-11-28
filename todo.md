@@ -53,4 +53,4 @@ Order matters: later items build on earlier ones.
 
 ## Release
 
-- [ ] Next release after the Cleanup section + per-mode overrides: bump to 0.2.0 (config format changes), merge `dev` → `main`, tag `v0.2.0`.
+- [x] Next release after the Cleanup section + per-mode overrides: bump to 0.2.0 (config format changes), merge `dev` → `main`, tag `v0.2.0`.
