@@ -165,6 +165,12 @@ elx/
 make install
 ```
 
+Shell completions (bash, zsh, fish, elvish, powershell):
+
+```bash
+elx --completions zsh > ~/.local/share/zsh/site-functions/_elx
+```
+
 ## Requirements
 
 - **Rust:** Latest stable version.

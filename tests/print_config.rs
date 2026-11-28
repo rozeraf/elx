@@ -38,3 +38,18 @@ fn print_config_shows_merged_settings() {
         );
     }
 }
+
+#[test]
+fn completions_cover_flags_and_value_enums() {
+    for shell in ["bash", "zsh", "fish"] {
+        let output = Command::new(env!("CARGO_BIN_EXE_elx"))
+            .args(["--completions", shell])
+            .output()
+            .unwrap();
+        assert!(output.status.success(), "{shell}");
+        let script = String::from_utf8(output.stdout).unwrap();
+        for needle in ["git-ignore", "collapse", "name_natural"] {
+            assert!(script.contains(needle), "{shell}: missing {needle}");
+        }
+    }
+}

@@ -163,6 +163,10 @@ pub struct Cli {
     #[arg(long)]
     pub init_config: bool,
 
+    /// Print a shell completion script (bash, zsh, fish, elvish, powershell) and exit
+    #[arg(long, value_name = "SHELL", hide = true)]
+    pub completions: Option<clap_complete::Shell>,
+
     /// Print the settings in effect for this invocation (config, sections and flags merged) and exit
     #[arg(long)]
     pub print_config: bool,

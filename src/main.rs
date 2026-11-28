@@ -28,6 +28,15 @@ fn main() -> Result<()> {
     }
 
     let mut args = Cli::parse();
+    if let Some(shell) = args.completions {
+        clap_complete::generate(
+            shell,
+            &mut <Cli as clap::CommandFactory>::command(),
+            "elx",
+            &mut std::io::stdout(),
+        );
+        return Ok(());
+    }
     if args.depth.is_some() {
         args.tree = true;
     }
