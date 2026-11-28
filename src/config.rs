@@ -117,7 +117,7 @@ pub struct Config {
     #[serde(default)]
     pub classify: bool,
     #[serde(default)]
-    pub depth: Option<usize>,
+    pub depth: Option<std::num::NonZeroUsize>,
     #[serde(default)]
     pub long: LongConfig,
     #[serde(default = "default_when_not_tty")]
@@ -417,6 +417,13 @@ mod tests {
     fn v0_1_configs_with_schema_version_still_load() {
         let config = parse("schema_version = 3\nicons = false\n");
         assert!(!config.icons);
+    }
+
+    #[test]
+    fn depth_zero_is_rejected() {
+        let result: Result<Config, _> = Figment::from(Toml::string("depth = 0")).extract();
+        assert!(result.is_err());
+        assert_eq!(parse("depth = 2").depth.map(|d| d.get()), Some(2));
     }
 
     #[test]

@@ -48,7 +48,7 @@ impl DisplayOptions {
         let mut hyperlinks = config.hyperlinks.clone();
         let mut classify = config.classify;
         let mut git_ignore = config.git_ignore;
-        let mut depth = config.depth;
+        let mut depth = config.depth.map(std::num::NonZeroUsize::get);
         let mut one_per_line = false;
         let long_view = cli.long;
         let mut ignore_globs = config.ignore.clone();
