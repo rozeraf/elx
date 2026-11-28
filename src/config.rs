@@ -97,6 +97,9 @@ impl Default for SortConfig {
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
+    /// Written by v0.1.x `--init-config`; accepted and ignored so those configs keep loading.
+    #[serde(default, rename = "schema_version", skip_serializing)]
+    pub _schema_version: Option<u32>,
     #[serde(default = "default_true")]
     pub icons: bool,
     #[serde(default = "default_true")]
@@ -130,6 +133,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
+            _schema_version: None,
             icons: true,
             color: true,
             hyperlinks: HyperlinkConfig::default(),
@@ -407,6 +411,12 @@ mod tests {
             parse("[tree]\ngit_ignore = \"dim\"").tree.git_ignore,
             Some(GitIgnoreMode::Dim)
         );
+    }
+
+    #[test]
+    fn v0_1_configs_with_schema_version_still_load() {
+        let config = parse("schema_version = 3\nicons = false\n");
+        assert!(!config.icons);
     }
 
     #[test]
