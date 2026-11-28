@@ -354,13 +354,20 @@ fn format_permissions(mode: u32) -> String {
 fn format_permissions_colored(mode: u32) -> String {
     format_permissions(mode)
         .chars()
-        .map(|ch| {
-            let color = match ch {
-                'd' => Color::Blue,
-                'r' => Color::Yellow,
-                'w' => Color::Red,
-                'x' | 's' | 'S' | 't' | 'T' => Color::Green,
-                'l' | 'p' | 'c' | 'b' => Color::Cyan,
+        .enumerate()
+        .map(|(i, ch)| {
+            // Position 0 is the file type, where 's' means socket, not setuid.
+            let color = match (i, ch) {
+                (0, 'd') => Color::Blue,
+                (0, '-') => Color::Grey,
+                (0, _) => Color::Cyan,
+                (_, 'r') => Color::Yellow,
+                (_, 'w') => Color::Red,
+                (_, 'x') => Color::Green,
+                (_, 's') => Color::Magenta,
+                (_, 'S') => Color::DarkMagenta,
+                (_, 't') => Color::Cyan,
+                (_, 'T') => Color::DarkCyan,
                 _ => Color::Grey,
             };
             ch.with(color).to_string()
@@ -404,6 +411,17 @@ mod tests {
             "файл界\\n\\r\\t\\u{1b}\\u{7}\\u{9b}\\u{202e}"
         );
         assert_ne!(escape_terminal_text("a\n"), escape_terminal_text("a\\n"));
+    }
+
+    #[test]
+    fn colored_permissions_distinguish_special_bits_from_file_type() {
+        use crossterm::style::{Color, Stylize};
+        let socket = super::format_permissions_colored(0o140600);
+        assert!(socket.starts_with(&'s'.with(Color::Cyan).to_string()));
+        let setuid = super::format_permissions_colored(0o104755);
+        assert!(setuid.contains(&'s'.with(Color::Magenta).to_string()));
+        let sticky = super::format_permissions_colored(0o041777);
+        assert!(sticky.ends_with(&'t'.with(Color::Cyan).to_string()));
     }
 
     #[test]

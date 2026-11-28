@@ -11,8 +11,8 @@ Order matters: later items build on earlier ones.
 - [x] `src/sort.rs:195`: `sort_entries(entries: &mut Vec<Entry>)` → `&mut [Entry]` (clippy `ptr_arg`).
 - [x] Run `cargo fmt` once on `cli.rs` and `sort.rs` in a separate `style:` commit so later diffs stay clean.
 - [x] Translate remaining Russian comments in `cli.rs`, `config.rs`, `sort.rs`, `formatter.rs` to English.
-- [ ] `-tr` / `-Sr` should flip the order like `ls` (oldest/smallest first); now `-r` just sets `reverse = true`, which `-t`/`-S` already set, so it does nothing (`build_sort_options` in `main.rs`).
-- [ ] Optional: restore distinct colors for setuid/setgid (magenta) and sticky (cyan) in `format_permissions_colored` (lost in the v0.1.2 merge; now same green as `x`).
+- [x] `-tr` / `-Sr` should flip the order like `ls` (oldest/smallest first); now `-r` just sets `reverse = true`, which `-t`/`-S` already set, so it does nothing (`build_sort_options` in `main.rs`).
+- [x] Optional: restore distinct colors for setuid/setgid (magenta) and sticky (cyan) in `format_permissions_colored` (lost in the v0.1.2 merge; now same green as `x`).
 - [ ] User side: remove `schema_version` from `~/.config/elx/config.toml` (field was dropped in `8c48690`).
 
 ## Filtering
