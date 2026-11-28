@@ -43,4 +43,4 @@ filtering via `ignore`, layered config via `figment`.
 
 ## Context files
 - `todo.md`: task checklist.
-- `filtering-ux.md`: planned filtering/UX work (per-mode overrides `[all]`/`[tree]`, `git_ignore = dim`, tree collapse, etc.).
+- `filtering-ux.md`: design notes (in Russian) behind the filtering/UX features; implemented, see `todo.md` for what changed vs the plan.
