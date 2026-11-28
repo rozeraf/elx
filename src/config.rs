@@ -9,19 +9,14 @@ use std::path::PathBuf;
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct HyperlinkConfig {
-    /// Global switch to enable/disable hyperlinks
     #[serde(default = "default_true")]
     pub enabled: bool,
-    /// Hyperlinks for regular files
     #[serde(default = "default_true")]
     pub files: bool,
-    /// Hyperlinks for directories (default false)
     #[serde(default)]
     pub dirs: bool,
-    /// Hyperlinks for symlinks
     #[serde(default = "default_true")]
     pub symlinks: bool,
-    /// Hyperlinks for executable files
     #[serde(default = "default_true")]
     pub executables: bool,
 }
@@ -42,51 +37,45 @@ impl Default for HyperlinkConfig {
 #[serde(rename_all = "snake_case")]
 pub enum SortKey {
     #[default]
-    Name,           // case-insensitive алфавит (или с учётом, см. ignore_case)
-    NameNatural,    // натуральная: file2 < file10
-    Extension,      // по расширению, тайбрейкер — name
-    Size,           // metadata.len(), директории → 0
-    Modified,       // metadata.modified()
-    Created,        // metadata.created()
-    GitStatus,      // M > A > D > ? > ! > чистый
-    None,           // порядок ФС, без сортировки
+    Name,
+    NameNatural,
+    Extension,
+    Size,
+    Modified,
+    Created,
+    GitStatus,
+    None,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum GroupDirs {
     #[default]
-    First,   // директории всегда перед файлами
-    Last,    // директории всегда после файлов
-    Mixed,   // не группировать — вместе с файлами по основному ключу
+    First,
+    Last,
+    Mixed,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct SortConfig {
-    /// Первичный ключ сортировки
     #[serde(default)]
     pub by: SortKey,
 
-    /// Тайбрейкер при равных значениях первичного ключа
-    /// По умолчанию None: при равных значениях — порядок ФС
+    /// Without a secondary key, ties keep filesystem order.
     #[serde(default)]
     pub secondary_by: Option<SortKey>,
 
-    /// Регистронезависимое сравнение имён и расширений
     #[serde(default = "default_true")]
     pub ignore_case: bool,
 
-    /// Обратный порядок (применяется к первичному и вторичному ключам,
-    /// но НЕ к group_dirs и dotfiles_first)
+    /// Applies to the sort keys only, not to `group_dirs` or `dotfiles_first`.
     #[serde(default)]
     pub reverse: bool,
 
-    /// Группировка директорий: first, last, mixed
     #[serde(default)]
     pub group_dirs: GroupDirs,
 
-    /// Показывать скрытые файлы (начинающиеся с .) первыми внутри группы
     #[serde(default)]
     pub dotfiles_first: bool,
 }
@@ -150,10 +139,10 @@ impl Default for Config {
 #[serde(rename_all = "snake_case")]
 pub enum PermissionsFormat {
     #[default]
-    Symbolic,   // drwxr-sr-x
-    Octal,      // 4755
-    Both,       // drwxr-sr-x 4755
-    None,       // Hide permissions
+    Symbolic,
+    Octal,
+    Both,
+    None,
 }
 
 #[derive(Deserialize, Serialize, Debug)]

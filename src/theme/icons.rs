@@ -20,14 +20,12 @@ impl IconManager {
         let mut icons_by_name = HashMap::new();
         let mut icons_by_extension = HashMap::new();
 
-        // Common names
         icons_by_name.insert("cargo.toml".to_string(), "\u{e68b}".to_string());
         icons_by_name.insert("cargo.lock".to_string(), "\u{e68b}".to_string());
         icons_by_name.insert(".gitignore".to_string(), "\u{e725}".to_string());
         icons_by_name.insert("license".to_string(), "\u{e60a}".to_string());
         icons_by_name.insert("readme.md".to_string(), "\u{e609}".to_string());
 
-        // Common extensions
         icons_by_extension.insert("rs".to_string(), "\u{e7a8}".to_string());
         icons_by_extension.insert("md".to_string(), "\u{e609}".to_string());
         icons_by_extension.insert("toml".to_string(), "\u{e615}".to_string());

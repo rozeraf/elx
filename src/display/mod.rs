@@ -36,7 +36,7 @@ impl DisplayOptions {
     pub fn new(config: &Config, cli: &Cli) -> Self {
         let is_tty = stdout().is_terminal();
 
-        // 1. Start with global config
+        // Layers: config, then non-TTY defaults, then explicit CLI flags (which always win).
         let mut icons = config.icons;
         let mut color = config.color;
         let mut hyperlinks = config.hyperlinks.clone();
@@ -47,7 +47,6 @@ impl DisplayOptions {
         let long_view = cli.long;
         let mut ignore_globs = config.ignore.clone();
 
-        // 2. Apply TTY overrides if not a terminal
         if !is_tty {
             icons = config.when_not_tty.icons;
             color = config.when_not_tty.color;
@@ -55,7 +54,6 @@ impl DisplayOptions {
             one_per_line = config.when_not_tty.one_per_line;
         }
 
-        // 4. CLI overrides
         if let Some(i) = cli.icons_overridden() {
             icons = i;
         }

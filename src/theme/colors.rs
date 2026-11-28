@@ -19,7 +19,6 @@ impl ColorManager {
             return name.to_string().with(Color::Cyan);
         }
 
-        // Basic executable check for Unix
         #[cfg(unix)]
         {
             use std::os::unix::fs::MetadataExt;

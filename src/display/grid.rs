@@ -25,7 +25,6 @@ pub fn render(options: GridOptions) -> String {
             + "\n";
     }
 
-    // 1. Try single line
     let total_width_single_line: usize = options
         .entries
         .iter()
@@ -43,7 +42,6 @@ pub fn render(options: GridOptions) -> String {
             + "\n";
     }
 
-    // 2. Variable column width algorithm
     let mut max_cols = options.terminal_width / 2; // Rough upper bound
     if max_cols > count {
         max_cols = count;
@@ -73,7 +71,6 @@ pub fn render(options: GridOptions) -> String {
         }
     }
 
-    // Fallback: single column
     options
         .entries
         .iter()

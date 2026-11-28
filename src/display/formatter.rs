@@ -76,7 +76,6 @@ pub(crate) fn should_hyperlink(options: &DisplayOptions, entry: &Entry) -> bool 
     if ft.is_symlink() {
         return options.hyperlinks.symlinks;
     }
-    // Regular file — check if executable
     #[cfg(unix)]
     {
         use std::os::unix::fs::MetadataExt;
@@ -137,9 +136,7 @@ impl<'a> ColumnFormatter<'a> {
                         };
                         (c, 15usize)
                     }
-                    PermissionsFormat::None => {
-                        (String::new(), 0usize)
-                    }
+                    PermissionsFormat::None => (String::new(), 0usize),
                 };
                 Cell { content, width }
             }

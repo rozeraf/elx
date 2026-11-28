@@ -122,23 +122,6 @@ pub struct Cli {
     pub init_config: bool,
 }
 
-#[cfg(test)]
-mod tests {
-    use super::Cli;
-    use clap::Parser;
-
-    #[test]
-    fn git_ignore_can_be_disabled_with_all_supported_flags() {
-        for flag in ["-G", "--nogit", "--no-git-ignore"] {
-            let cli = Cli::try_parse_from(["elx", flag]).unwrap();
-            assert!(
-                cli.no_git_ignore,
-                "flag {flag} should disable git-ignore filtering"
-            );
-        }
-    }
-}
-
 impl Cli {
     pub fn icons_overridden(&self) -> Option<bool> {
         if self.icons {
@@ -170,32 +153,61 @@ impl Cli {
         }
     }
 
-    /// Возвращает (ключ, нужно ли форсировать reverse из шортхенда).
-    /// Шортхенды -t и -S сами устанавливают reverse=true.
+    /// Returns the sort key and whether it forces reverse (`-t`, `-S` list newest/largest first).
     pub fn resolve_sort_key(&self) -> (Option<crate::config::SortKey>, bool) {
         use crate::config::SortKey;
-        if self.sort_time      { return (Some(SortKey::Modified), true); }
-        if self.sort_size      { return (Some(SortKey::Size), true); }
-        if self.sort_extension { return (Some(SortKey::Extension), false); }
-        if self.sort_natural   { return (Some(SortKey::NameNatural), false); }
-        if self.sort_none      { return (Some(SortKey::None), false); }
+        if self.sort_time {
+            return (Some(SortKey::Modified), true);
+        }
+        if self.sort_size {
+            return (Some(SortKey::Size), true);
+        }
+        if self.sort_extension {
+            return (Some(SortKey::Extension), false);
+        }
+        if self.sort_natural {
+            return (Some(SortKey::NameNatural), false);
+        }
+        if self.sort_none {
+            return (Some(SortKey::None), false);
+        }
         if let Some(ref s) = self.sort {
             let key = match s.as_str() {
-                "name"         => SortKey::Name,
+                "name" => SortKey::Name,
                 "name_natural" => SortKey::NameNatural,
-                "extension"    => SortKey::Extension,
-                "size"         => SortKey::Size,
-                "modified"     => SortKey::Modified,
-                "created"      => SortKey::Created,
-                "git_status"   => SortKey::GitStatus,
-                "none"         => SortKey::None,
+                "extension" => SortKey::Extension,
+                "size" => SortKey::Size,
+                "modified" => SortKey::Modified,
+                "created" => SortKey::Created,
+                "git_status" => SortKey::GitStatus,
+                "none" => SortKey::None,
                 unknown => {
-                    eprintln!("elx: unknown sort key '{}', falling back to 'name'", unknown);
+                    eprintln!(
+                        "elx: unknown sort key '{}', falling back to 'name'",
+                        unknown
+                    );
                     SortKey::Name
                 }
             };
             return (Some(key), false);
         }
         (None, false)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Cli;
+    use clap::Parser;
+
+    #[test]
+    fn git_ignore_can_be_disabled_with_all_supported_flags() {
+        for flag in ["-G", "--nogit", "--no-git-ignore"] {
+            let cli = Cli::try_parse_from(["elx", flag]).unwrap();
+            assert!(
+                cli.no_git_ignore,
+                "flag {flag} should disable git-ignore filtering"
+            );
+        }
     }
 }

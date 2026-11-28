@@ -3,8 +3,8 @@ mod config;
 mod display;
 mod fs;
 mod git;
-mod theme;
 mod sort;
+mod theme;
 
 use anyhow::Result;
 use clap::Parser;
@@ -15,9 +15,9 @@ use display::get_terminal_width;
 use display::grid::{GridEntry, GridOptions, render};
 use display::long::LongView;
 use fs::walker::Walker;
+use sort::{SortOptions, sort_entries};
 use theme::Theme;
 use unicode_width::UnicodeWidthStr;
-use sort::{SortOptions, sort_entries};
 
 fn main() -> Result<()> {
     let args = Cli::parse();
@@ -92,21 +92,17 @@ fn build_sort_options(config: &Config, cli: &Cli) -> SortOptions {
 
     let mut opts = SortOptions::from(&config.sort);
 
-    // --- ключ сортировки ---
     let (cli_key, shorthand_forces_reverse) = cli.resolve_sort_key();
     if let Some(key) = cli_key {
         opts.by = key;
     }
-    // -t / -S форсируют reverse независимо от конфига
     if shorthand_forces_reverse {
         opts.reverse = true;
     }
-    // явный -r всегда добавляет reverse поверх всего
     if cli.reverse {
         opts.reverse = true;
     }
 
-    // --- группировка директорий ---
     if cli.dirs_first {
         opts.group_dirs = GroupDirs::First;
     } else if cli.dirs_last {
@@ -115,7 +111,6 @@ fn build_sort_options(config: &Config, cli: &Cli) -> SortOptions {
         opts.group_dirs = GroupDirs::Mixed;
     }
 
-    // --- прочие переключатели ---
     if cli.dotfiles_first {
         opts.dotfiles_first = true;
     }
@@ -196,7 +191,6 @@ fn render_entries(
 
                 use display::formatter::{file_uri, should_hyperlink, wrap_hyperlink};
 
-                // should_hyperlink принимает &DisplayOptions и &Entry
                 let display_name = if should_hyperlink(options, entry) {
                     let uri = file_uri(&entry.abs_path);
                     wrap_hyperlink(&uri, &format!("{}{}{}", icon, name, suffix))

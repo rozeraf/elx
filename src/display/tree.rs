@@ -58,7 +58,6 @@ impl<'a> TreeView<'a> {
 
         let mut col_widths: HashMap<Column, usize> = HashMap::new();
         if self.options.long_view {
-            // Initialize with header lengths
             for col in &active_columns {
                 if *col == Column::Name {
                     continue;
@@ -177,7 +176,6 @@ impl<'a> TreeView<'a> {
         widths: &HashMap<Column, usize>,
         active_columns: &[Column],
     ) {
-        // 1. Render Metadata (if enabled)
         if self.options.long_view {
             for col in active_columns {
                 if *col == Column::Name {
@@ -208,7 +206,6 @@ impl<'a> TreeView<'a> {
             }
         }
 
-        // 2. Render Tree structure and Name
         let branch = if is_last { LAST_BRANCH } else { BRANCH };
 
         let name = formatter.format_column(Column::Name, entry);
@@ -217,7 +214,6 @@ impl<'a> TreeView<'a> {
             prefix, branch, HORIZONTAL, HORIZONTAL, name.content
         );
 
-        // 3. Render Children
         if let Some(children) = &entry.children {
             let next_prefix = if is_last {
                 format!("{}    ", prefix)
