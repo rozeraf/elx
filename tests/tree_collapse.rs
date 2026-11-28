@@ -65,7 +65,7 @@ fn tree_collapses_matching_directories_at_any_depth() {
     let abs = files.to_str().unwrap();
     for (cwd, path) in [(fixture.0.as_path(), abs), (files.as_path(), ".")] {
         let output = fixture.output(cwd, &["-T", path]);
-        assert!(output.contains("target …"), "{output}");
+        assert!(output.contains("target … 1"), "{output}");
         assert!(!output.contains("deep"), "{output}");
         assert!(!output.contains("obj"), "{output}");
         assert!(output.contains("main.rs"), "{output}");
@@ -81,7 +81,7 @@ fn collapse_flags_override_config() {
     assert!(output.contains("deep") && !output.contains('…'), "{output}");
     let output = fixture.output(&fixture.0, &["-T", "--collapse", "src", path]);
     assert!(
-        output.contains("src …") && !output.contains("main.rs"),
+        output.contains("src … 1") && !output.contains("main.rs"),
         "{output}"
     );
     assert!(!output.contains("deep"), "{output}");

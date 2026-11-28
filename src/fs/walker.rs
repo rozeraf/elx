@@ -150,7 +150,8 @@ impl Walker {
 
             if entry.metadata.is_dir() && current_depth < self.opts.max_depth {
                 if matchers.collapse.matched(&entry_path, true).is_ignore() {
-                    entry.collapsed = true;
+                    entry.collapsed =
+                        Some(std::fs::read_dir(&entry_path).map_or(0, |dir| dir.count()));
                 } else {
                     entry.children = Some(self.collect_at(
                         &entry_path,

@@ -58,7 +58,7 @@ also works for an explicitly listed file and through directory symlinks.
 - **Show Everything:** `-u`/`--unrestricted` (or `-aa`) turns off all filtering: dotfiles, `.gitignore`,
   `.elxignore`/`.ignore` and config patterns. Explicit `--ignore` and `--git-ignore` still apply.
 - **Tree Collapse:** In tree view, directories matching `collapse` patterns (gitignore syntax) are shown as
-  `name …` without listing their contents. `--collapse <globs>` adds patterns, `--no-collapse` expands everything.
+  `name … N` (N = number of direct entries) without listing their contents. `--collapse <globs>` adds patterns, `--no-collapse` expands everything.
 - **Persistent Ignore:** Patterns can also be defined in your `config.toml`:
   ```toml
   ignore = ["*.tmp", ".cache", "bin"]

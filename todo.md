@@ -25,7 +25,7 @@ Order matters: later items build on earlier ones.
   - [x] Optional: `--git-ignore=<mode>` CLI flag (now only via config / `[all]` / `[tree]`).
   - Note: `-T` with `dim` and no `--depth` walks into ignored dirs like `target/`; tree collapse fixes that.
 - [x] **Tree collapse** [2]: `collapse` (gitignore-style patterns) in config and modes, `--collapse`, `--no-collapse`; rendered as `name …`.
-  - [ ] Optional: entry count in the marker (`target … 1234`); needs a `read_dir` per collapsed dir.
+  - [x] Optional: entry count in the marker (`target … 1234`); needs a `read_dir` per collapsed dir.
 - [x] **Hidden summary footer** [3]
   - [x] Walker counts skipped entries by reason (hidden / gitignored / pattern).
   - [x] Footer `N hidden (…) — use -a / -G to show`, TTY only.

@@ -210,11 +210,11 @@ impl<'a> TreeView<'a> {
 
         let name = formatter.format_column(Column::Name, entry);
         let collapsed = match (entry.collapsed, self.options.color) {
-            (false, _) => String::new(),
-            (true, false) => " …".to_string(),
-            (true, true) => {
+            (None, _) => String::new(),
+            (Some(count), false) => format!(" … {count}"),
+            (Some(count), true) => {
                 use crossterm::style::{Color, Stylize};
-                format!(" {}", "…".with(Color::DarkGrey))
+                format!(" {}", format!("… {count}").with(Color::DarkGrey))
             }
         };
         println!(
