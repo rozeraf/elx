@@ -45,6 +45,10 @@ Order matters: later items build on earlier ones.
 - [x] `-L <N>` alias for `--depth`; `--depth` without `-T` enables tree.
 - [x] Shell completions via `clap_complete` (new dep) behind hidden `--completions <shell>`.
 
+## Next
+
+- [ ] `group_dirs` per view: separate setting for long (`-l`) and tree (`-T`), e.g. `group_dirs` in `[long]` and `[tree]`, falling back to `[sort] group_dirs`. `--dirs-first/--dirs-last/--dirs-mixed` still win.
+
 ## Later (from idea.md "not in MVP")
 
 - [ ] Custom icon/color themes via config (`[theme]` section; now hardcoded in `src/theme/`).
