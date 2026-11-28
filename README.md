@@ -58,9 +58,10 @@ The config file is located at `~/.config/elx/config.toml`.
 
 ### Per-mode overrides
 
-Sections `[all]` (active with `-a`) and `[tree]` (active with `-T`) override top-level keys while the mode is on.
+Sections `[all]` (active with `-a`), `[tree]` (active with `-T`) and `[when_not_tty]` (output redirected to a file or pipe) override top-level keys while the mode is on.
 Unset keys inherit the top-level value; `ignore` replaces the global list instead of extending it.
-Supported keys: `icons`, `color`, `classify`, `git_ignore`, `ignore`.
+Supported keys: `icons`, `color`, `classify`, `git_ignore`, `ignore`, `one_per_line`.
+Without a `[when_not_tty]` section, redirected output has no icons, no colors and one entry per line; hyperlinks are always off there.
 
 ```toml
 classify = false

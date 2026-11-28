@@ -38,7 +38,7 @@ impl DisplayOptions {
     }
 
     fn build(config: &Config, cli: &Cli, is_tty: bool) -> Self {
-        // Layers: config, [all], [tree], non-TTY defaults, then explicit CLI flags (which always win).
+        // Layers: config, [all], [tree], [when_not_tty], then explicit CLI flags (which always win).
         let mut icons = config.icons;
         let mut color = config.color;
         let mut hyperlinks = config.hyperlinks.clone();
@@ -49,23 +49,24 @@ impl DisplayOptions {
         let long_view = cli.long;
         let mut ignore_globs = config.ignore.clone();
 
-        let active_modes: [(bool, &ModeOverrides); 2] =
-            [(cli.all, &config.all), (cli.tree, &config.tree)];
+        let active_modes: [(bool, &ModeOverrides); 3] = [
+            (cli.all, &config.all),
+            (cli.tree, &config.tree),
+            (!is_tty, &config.when_not_tty),
+        ];
         for (_, mode) in active_modes.into_iter().filter(|(on, _)| *on) {
             icons = mode.icons.unwrap_or(icons);
             color = mode.color.unwrap_or(color);
             classify = mode.classify.unwrap_or(classify);
             git_ignore = mode.git_ignore.unwrap_or(git_ignore);
+            one_per_line = mode.one_per_line.unwrap_or(one_per_line);
             if let Some(globs) = &mode.ignore {
                 ignore_globs = globs.clone();
             }
         }
 
         if !is_tty {
-            icons = config.when_not_tty.icons;
-            color = config.when_not_tty.color;
             hyperlinks.enabled = false;
-            one_per_line = config.when_not_tty.one_per_line;
         }
 
         if let Some(i) = cli.icons_overridden() {
@@ -176,6 +177,25 @@ mod tests {
     fn non_tty_overrides_modes() {
         let o = opts(&["-T"], false);
         assert!(!o.color);
+    }
+
+    #[test]
+    fn non_tty_defaults_apply_without_section() {
+        let cli = Cli::try_parse_from(["elx"]).unwrap();
+        let o = DisplayOptions::build(&Config::default(), &cli, false);
+        assert!(!o.icons && !o.color && !o.hyperlinks.enabled && o.one_per_line);
+    }
+
+    #[test]
+    fn non_tty_section_inherits_unset_keys() {
+        let mut cfg = config();
+        cfg.when_not_tty = ModeOverrides {
+            icons: Some(false),
+            ..Default::default()
+        };
+        let cli = Cli::try_parse_from(["elx"]).unwrap();
+        let o = DisplayOptions::build(&cfg, &cli, false);
+        assert!(!o.icons && o.color && !o.one_per_line);
     }
 
     #[test]

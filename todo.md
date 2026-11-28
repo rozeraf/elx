@@ -18,7 +18,7 @@ Order matters: later items build on earlier ones.
 ## Filtering
 
 - [x] **Per-mode overrides `[all]` / `[tree]`** [0]: `ModeOverrides` with `icons`, `color`, `classify`, `git_ignore`, `ignore` (replaces). `collapse` gets added with tree collapse.
-  - [ ] Decide whether to move `[when_not_tty]` onto `ModeOverrides`. Kept separate for now: its missing keys default to `false`, not "inherit", so merging would change behaviour for existing configs.
+  - [x] `[when_not_tty]` moved onto `ModeOverrides` (unset keys now inherit instead of defaulting to `false`).
 - [ ] **`git_ignore = "hide" | "dim" | "show"`** [1]
   - [ ] Enum in `config.rs`; `true` → `hide`, `false` → `show` for old configs.
   - [ ] Walker: `git_ignore(false)` for `dim`/`show`.

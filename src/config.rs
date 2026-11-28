@@ -112,8 +112,8 @@ pub struct Config {
     pub depth: Option<usize>,
     #[serde(default)]
     pub long: LongConfig,
-    #[serde(default)]
-    pub when_not_tty: WhenNotTty,
+    #[serde(default = "default_when_not_tty")]
+    pub when_not_tty: ModeOverrides,
     #[serde(default)]
     pub sort: SortConfig,
     #[serde(default)]
@@ -133,7 +133,7 @@ impl Default for Config {
             classify: false,
             depth: None,
             long: LongConfig::default(),
-            when_not_tty: WhenNotTty::default(),
+            when_not_tty: default_when_not_tty(),
             sort: SortConfig::default(),
             all: ModeOverrides::default(),
             tree: ModeOverrides::default(),
@@ -188,27 +188,6 @@ fn default_columns() -> Vec<Column> {
     ]
 }
 
-#[derive(Deserialize, Serialize, Debug)]
-#[serde(deny_unknown_fields)]
-pub struct WhenNotTty {
-    #[serde(default)]
-    pub icons: bool,
-    #[serde(default)]
-    pub color: bool,
-    #[serde(default = "default_true")]
-    pub one_per_line: bool,
-}
-
-impl Default for WhenNotTty {
-    fn default() -> Self {
-        Self {
-            icons: false,
-            color: false,
-            one_per_line: true,
-        }
-    }
-}
-
 /// Keys left unset inherit the base value. `ignore` replaces the base list instead of extending it,
 /// so a mode can drop a pattern.
 #[derive(Deserialize, Serialize, Debug, Default)]
@@ -219,6 +198,16 @@ pub struct ModeOverrides {
     pub classify: Option<bool>,
     pub git_ignore: Option<bool>,
     pub ignore: Option<Vec<String>>,
+    pub one_per_line: Option<bool>,
+}
+
+fn default_when_not_tty() -> ModeOverrides {
+    ModeOverrides {
+        icons: Some(false),
+        color: Some(false),
+        one_per_line: Some(true),
+        ..Default::default()
+    }
 }
 
 fn default_true() -> bool {
@@ -320,8 +309,8 @@ group_dirs = "first"
 dotfiles_first = false
 
 # Per-mode overrides: keys set here replace the values above while the mode is active.
-# Applied in order: [all] (-a), [tree] (-T), [when_not_tty], then CLI flags.
-# Supported keys: icons, color, classify, git_ignore, ignore (replaces the global list).
+# Applied in order: [all] (-a), [tree] (-T), [when_not_tty] (output is not a terminal), then CLI flags.
+# Supported keys: icons, color, classify, git_ignore, ignore (replaces the global list), one_per_line.
 [all]
 # classify = true
 
@@ -329,7 +318,7 @@ dotfiles_first = false
 # ignore = ["target", "node_modules"]
 
 [when_not_tty]
-# Configuration for when output is redirected (e.g., to a file or pipe)
+# Output redirected to a file or pipe. Hyperlinks are always disabled here.
 icons = false
 color = false
 one_per_line = true
