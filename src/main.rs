@@ -335,8 +335,8 @@ fn render_entries(
                 let safe_name = display::formatter::escape_terminal_text(&entry.name);
                 let name = display::formatter::colored_name(theme, options, entry, &safe_name);
 
-                let suffix = if options.classify && entry.metadata.is_dir() {
-                    "/"
+                let suffix = if options.classify {
+                    display::formatter::classify_suffix(entry)
                 } else {
                     ""
                 };

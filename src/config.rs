@@ -304,7 +304,7 @@ git_ignore = "hide"
 # Example: ignore = ["*.json", "node_modules", "bin"]
 ignore = []
 
-# Append indicator (one of /) to directories
+# Append indicators like ls -F: / directory, @ symlink, * executable, | FIFO, = socket
 classify = false
 
 # Directories shown in tree view without descending into them (gitignore-style patterns)

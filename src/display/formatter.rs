@@ -86,6 +86,25 @@ pub(crate) fn colored_name(
     }
 }
 
+/// `ls -F` indicators. Symlinks shown with their `-> target` get none, like `ls -lF`.
+pub(crate) fn classify_suffix(entry: &Entry) -> &'static str {
+    use std::os::unix::fs::FileTypeExt;
+    let ft = entry.metadata.file_type();
+    if ft.is_dir() {
+        "/"
+    } else if ft.is_symlink() {
+        "@"
+    } else if ft.is_fifo() {
+        "|"
+    } else if ft.is_socket() {
+        "="
+    } else if ft.is_file() && entry.metadata.mode() & 0o111 != 0 {
+        "*"
+    } else {
+        ""
+    }
+}
+
 pub(crate) fn should_hyperlink(options: &DisplayOptions, entry: &Entry) -> bool {
     if !options.hyperlinks.enabled {
         return false;
@@ -281,8 +300,8 @@ impl<'a> ColumnFormatter<'a> {
                 let safe_name = escape_terminal_text(&entry.name);
                 let name = colored_name(self.theme, self.options, entry, &safe_name);
 
-                let suffix = if self.options.classify && entry.metadata.is_dir() {
-                    "/"
+                let suffix = if self.options.classify && entry.link_target.is_none() {
+                    classify_suffix(entry)
                 } else {
                     ""
                 };
@@ -409,6 +428,27 @@ fn format_size(size: u64) -> String {
 mod tests {
     use super::{escape_terminal_text, file_uri};
     use std::path::Path;
+
+    #[test]
+    fn classify_suffixes_match_ls() {
+        use crate::fs::entry::Entry;
+        use std::os::unix::fs::PermissionsExt;
+        let root = std::env::temp_dir().join(format!("elx-classify-test-{}", std::process::id()));
+        std::fs::create_dir_all(root.join("dir")).unwrap();
+        std::fs::write(root.join("plain"), "").unwrap();
+        std::fs::write(root.join("exe"), "").unwrap();
+        std::fs::set_permissions(root.join("exe"), std::fs::Permissions::from_mode(0o755)).unwrap();
+        std::os::unix::fs::symlink("dir", root.join("link")).unwrap();
+        let fifo = std::ffi::CString::new(root.join("fifo").to_str().unwrap()).unwrap();
+        // SAFETY: fifo is a valid NUL-terminated path.
+        assert_eq!(unsafe { libc::mkfifo(fifo.as_ptr(), 0o644) }, 0);
+        let _socket = std::os::unix::net::UnixListener::bind(root.join("sock")).unwrap();
+        let suffix =
+            |name: &str| super::classify_suffix(&Entry::from_path(root.join(name)).unwrap());
+        let got = ["dir", "plain", "exe", "link", "fifo", "sock"].map(suffix);
+        std::fs::remove_dir_all(&root).unwrap();
+        assert_eq!(got, ["/", "", "*", "@", "|", "="]);
+    }
 
     #[test]
     fn old_and_future_dates_show_the_year() {

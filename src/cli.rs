@@ -54,7 +54,7 @@ pub struct Cli {
     #[arg(long, overrides_with = "no_hyperlinks", hide = true)]
     pub hyperlinks: bool,
 
-    /// Append indicator (one of /) to entries
+    /// Append indicator (one of /@*|=) to entries, like ls -F
     #[arg(short = 'F', long)]
     pub classify: bool,
 

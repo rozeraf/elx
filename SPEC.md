@@ -55,7 +55,7 @@ elx [OPTIONS] [PATH]
 | `--no-icons` | No icons. |
 | `--no-color` | No colors (no ANSI styling at all). |
 | `--no-hyperlinks` | No OSC 8 hyperlinks. |
-| `-F`, `--classify` | Append `/` to directories. No other indicators. |
+| `-F`, `--classify` | Append an indicator like `ls -F`: `/` directory, `@` symlink, `*` executable file, `\|` FIFO, `=` socket. A symlink shown with `-> target` (long and tree views) gets none, like `ls -lF`; a symlink to a directory gets `@`, not `/`. |
 | `-o`, `--octal` | Permissions column in octal (`0755`). Overrides `long.permissions_format`. |
 
 ### 3.3 Filtering
@@ -124,7 +124,7 @@ All tables reject unknown keys.
 |---|---|---|---|
 | `icons` | bool | `true` | Nerd Font icons before names. |
 | `color` | bool | `true` | ANSI colors. |
-| `classify` | bool | `false` | `/` after directories. |
+| `classify` | bool | `false` | Indicators as `-F`. |
 | `git_ignore` | `"hide"\|"dim"\|"show"` or bool | `"hide"` | Gitignored entries; `true` = `hide`, `false` = `show` (pre-0.2 format). |
 | `ignore` | list of patterns | `[]` | Ignore patterns, gitignore syntax (section 5.3). |
 | `collapse` | list of patterns | `[]` | Tree collapse patterns (section 6.3). |
