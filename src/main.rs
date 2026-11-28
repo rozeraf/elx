@@ -99,8 +99,9 @@ fn build_sort_options(config: &Config, cli: &Cli) -> SortOptions {
     if shorthand_forces_reverse {
         opts.reverse = true;
     }
+    // Like ls: -r flips whatever order is in effect, so -tr lists oldest first.
     if cli.reverse {
-        opts.reverse = true;
+        opts.reverse = !opts.reverse;
     }
 
     if cli.dirs_first {
@@ -204,5 +205,30 @@ fn render_entries(
             one_per_line: options.one_per_line,
         });
         print!("{}", output);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::build_sort_options;
+    use crate::cli::Cli;
+    use crate::config::Config;
+    use clap::Parser;
+
+    fn reverse(args: &[&str], config_reverse: bool) -> bool {
+        let cli = Cli::try_parse_from(std::iter::once("elx").chain(args.iter().copied())).unwrap();
+        let mut config = Config::default();
+        config.sort.reverse = config_reverse;
+        build_sort_options(&config, &cli).reverse
+    }
+
+    #[test]
+    fn reverse_flag_flips_the_effective_order() {
+        assert!(!reverse(&[], false));
+        assert!(reverse(&["-r"], false));
+        assert!(reverse(&["-t"], false));
+        assert!(!reverse(&["-tr"], false));
+        assert!(!reverse(&["-Sr"], false));
+        assert!(!reverse(&["-r"], true));
     }
 }
