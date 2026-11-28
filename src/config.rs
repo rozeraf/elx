@@ -210,9 +210,31 @@ pub struct LongConfig {
     pub autohide_columns: bool,
     #[serde(default)]
     pub permissions_format: PermissionsFormat,
-    /// Replaces `[sort] group_dirs` in long view; `[tree] group_dirs` wins for `-lT`.
-    #[serde(default)]
+    // [long] is also a mode section (active with -l). The keys repeat ModeOverrides because serde
+    // cannot combine #[serde(flatten)] with deny_unknown_fields.
+    pub icons: Option<bool>,
+    pub color: Option<bool>,
+    pub classify: Option<bool>,
+    pub git_ignore: Option<GitIgnoreMode>,
+    pub ignore: Option<Vec<String>>,
+    pub collapse: Option<Vec<String>>,
+    pub one_per_line: Option<bool>,
     pub group_dirs: Option<GroupDirs>,
+}
+
+impl LongConfig {
+    pub fn mode(&self) -> ModeOverrides {
+        ModeOverrides {
+            icons: self.icons,
+            color: self.color,
+            classify: self.classify,
+            git_ignore: self.git_ignore,
+            ignore: self.ignore.clone(),
+            collapse: self.collapse.clone(),
+            one_per_line: self.one_per_line,
+            group_dirs: self.group_dirs,
+        }
+    }
 }
 
 impl Default for LongConfig {
@@ -222,6 +244,13 @@ impl Default for LongConfig {
             headers: true,
             autohide_columns: true,
             permissions_format: PermissionsFormat::Symbolic,
+            icons: None,
+            color: None,
+            classify: None,
+            git_ignore: None,
+            ignore: None,
+            collapse: None,
+            one_per_line: None,
             group_dirs: None,
         }
     }
@@ -334,7 +363,7 @@ headers = true
 # Automatically hide columns that are empty for all shown entries (e.g., Git column if no changes)
 autohide_columns = true
 
-# Directory grouping in long view (first, last, mixed); unset uses [sort] group_dirs
+# [long] is also a mode section for -l and accepts the per-mode keys listed below, e.g.
 # group_dirs = "mixed"
 
 # Permissions display format: symbolic (drwxr-sr-x), octal (4755), both (drwxr-sr-x 4755), none
@@ -374,7 +403,8 @@ group_dirs = "first"
 dotfiles_first = false
 
 # Per-mode overrides: keys set here replace the values above while the mode is active.
-# Applied in order: [all] (-a), [tree] (-T), [when_not_tty] (output is not a terminal), then CLI flags.
+# Applied in order: [long] (-l), [all] (-a), [tree] (-T), [when_not_tty] (output is not a terminal),
+# then CLI flags.
 # Supported keys: icons, color, classify, git_ignore, ignore, collapse, one_per_line, group_dirs.
 # Lists (ignore, collapse) replace the global list.
 [all]

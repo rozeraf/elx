@@ -82,7 +82,7 @@ merging the config file, the active sections and the flags.
 
 ### Per-mode overrides
 
-Sections `[all]` (active with `-a`), `[tree]` (active with `-T`) and `[when_not_tty]` (output redirected to a file or pipe) override top-level keys while the mode is on.
+Sections `[long]` (active with `-l`), `[all]` (active with `-a`), `[tree]` (active with `-T`) and `[when_not_tty]` (output redirected to a file or pipe) override top-level keys while the mode is on. `[long]` also holds the long-view settings (`columns`, `headers`, ...).
 Unset keys inherit the top-level value; lists (`ignore`, `collapse`) replace the global list instead of extending it.
 Supported keys: `icons`, `color`, `classify`, `git_ignore`, `ignore`, `collapse`, `one_per_line`, `group_dirs`.
 Without a `[when_not_tty]` section, redirected output has no icons, no colors and one entry per line; hyperlinks are always off there.
@@ -99,9 +99,7 @@ git_ignore = "dim"
 collapse = ["target", "node_modules", ".git"]
 ```
 
-Order: top-level → `[all]` → `[tree]` → `[when_not_tty]` → CLI flags (CLI always wins).
-
-Directory grouping can also differ per view: `group_dirs` in `[long]` applies to `-l`, `group_dirs` in `[tree]` to `-T` (also `-lT`); without them `[sort] group_dirs` is used, and `--dirs-first/--dirs-last/--dirs-mixed` override all of them.
+Order: top-level (`group_dirs` from `[sort]`) → `[long]` → `[all]` → `[tree]` → `[when_not_tty]` → CLI flags (CLI always wins). For example, directory grouping per view:
 
 ```toml
 [sort]

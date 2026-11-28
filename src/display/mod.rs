@@ -50,7 +50,7 @@ impl DisplayOptions {
     }
 
     fn build(config: &Config, cli: &Cli, is_tty: bool) -> Self {
-        // Layers: config, [all], [tree], [when_not_tty], then explicit CLI flags (which always win).
+        // Layers: config, [long], [all], [tree], [when_not_tty], then explicit CLI flags (which always win).
         let mut icons = config.icons;
         let mut color = config.color;
         let mut hyperlinks = config.hyperlinks.clone();
@@ -62,13 +62,10 @@ impl DisplayOptions {
         let mut ignore_globs = config.ignore.clone();
         let mut collapse_globs = config.collapse.clone();
         let mut group_dirs = config.sort.group_dirs;
-        if cli.long
-            && let Some(g) = config.long.group_dirs
-        {
-            group_dirs = g;
-        }
 
-        let active_modes: [(bool, &ModeOverrides); 3] = [
+        let long_mode = config.long.mode();
+        let active_modes: [(bool, &ModeOverrides); 4] = [
+            (cli.long, &long_mode),
             (cli.show_hidden(), &config.all),
             (cli.tree, &config.tree),
             (!is_tty, &config.when_not_tty),
@@ -319,5 +316,19 @@ mod tests {
         assert_eq!(build(&["-lT"]), GroupDirs::Last);
         assert_eq!(build(&["-lT", "--dirs-first"]), GroupDirs::First);
         assert_eq!(build(&["-l", "--dirs-last"]), GroupDirs::Last);
+    }
+
+    #[test]
+    fn long_section_is_a_mode_section() {
+        let mut cfg = config();
+        cfg.long.classify = Some(true);
+        cfg.long.color = Some(false);
+        let cli = Cli::try_parse_from(["elx", "-l"]).unwrap();
+        let o = DisplayOptions::build(&cfg, &cli, true);
+        assert!(o.classify && !o.color);
+        let cli = Cli::try_parse_from(["elx", "-la"]).unwrap();
+        assert!(DisplayOptions::build(&cfg, &cli, true).classify);
+        let cli = Cli::try_parse_from(["elx"]).unwrap();
+        assert!(!DisplayOptions::build(&cfg, &cli, true).classify);
     }
 }

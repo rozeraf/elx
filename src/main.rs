@@ -169,6 +169,7 @@ fn effective_config(options: &DisplayOptions, sort: &SortOptions, args: &Cli) ->
     let path = Config::get_config_path();
     let state = if path.exists() { "" } else { " (not found)" };
     let sections: Vec<&str> = [
+        (args.long, "[long]"),
         (args.show_hidden(), "[all]"),
         (args.tree, "[tree]"),
         (
