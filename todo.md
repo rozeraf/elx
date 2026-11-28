@@ -42,7 +42,7 @@ Order matters: later items build on earlier ones.
 
 - [x] `--sort` as `clap::ValueEnum` instead of `String` (error with valid values instead of silent fallback).
 - [ ] `--print-config`: effective config after all layers for the current flags.
-- [ ] `-L <N>` alias for `--depth`; `--depth` without `-T` enables tree.
+- [x] `-L <N>` alias for `--depth`; `--depth` without `-T` enables tree.
 - [ ] Shell completions via `clap_complete` (new dep) behind hidden `--completions <shell>`.
 
 ## Later (from idea.md "not in MVP")

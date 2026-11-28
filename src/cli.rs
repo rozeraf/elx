@@ -26,8 +26,8 @@ pub struct Cli {
     #[arg(short = 'T', long)]
     pub tree: bool,
 
-    /// Maximum recursion depth for tree view
-    #[arg(long)]
+    /// Maximum recursion depth for tree view (implies --tree)
+    #[arg(short = 'L', long)]
     pub depth: Option<usize>,
 
     /// Do not display icons

@@ -97,3 +97,15 @@ fn collapse_marker_only_appears_in_tree_view() {
         "{output}"
     );
 }
+
+#[test]
+fn depth_implies_tree_view() {
+    let fixture = Fixture::new("");
+    let files = fixture.files();
+    let path = files.to_str().unwrap();
+    for flag in ["-L", "--depth"] {
+        let output = fixture.output(&fixture.0, &[flag, "1", path]);
+        assert!(output.contains("├── src"), "{flag}: {output}");
+        assert!(!output.contains("main.rs"), "{flag}: {output}");
+    }
+}

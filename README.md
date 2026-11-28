@@ -15,7 +15,7 @@ While tools like `eza` and `lsd` are excellent, they often come with trade-offs:
 ## Key Features
 
 - **Display Modes:** Grid (default), Long (`-l`), and Tree (`-T`).
-- **Tree Mode:** Recursive directory visualization with configurable depth (`--depth`).
+- **Tree Mode:** Recursive directory visualization with configurable depth (`--depth`/`-L`, which also turns tree mode on).
 - **Metadata:** Integrated metadata display (permissions, owner, size, date) in both Long and Tree views.
 - **Git Status:** Integrated file status (`M`, `A`, `D`, `?`, `!`) powered by `gix`.
 - **Terminal Hyperlinks (OSC 8):** Clickable file names in supported terminals with granular control.

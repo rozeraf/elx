@@ -27,7 +27,10 @@ fn main() -> Result<()> {
         libc::signal(libc::SIGPIPE, libc::SIG_DFL);
     }
 
-    let args = Cli::parse();
+    let mut args = Cli::parse();
+    if args.depth.is_some() {
+        args.tree = true;
+    }
 
     let config = Config::load();
 
