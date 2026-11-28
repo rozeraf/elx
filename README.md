@@ -37,6 +37,7 @@ also works for an explicitly listed file and through directory symlinks.
 
 - **Git Ignore:** Entries matched by `.gitignore` are hidden by default. Set `git_ignore = "dim"` to show them
   greyed out, or `"show"` to list them normally (same as `-G`, `--nogit`, `--no-git-ignore`).
+  `--git-ignore <hide|dim|show>` overrides the config for one run.
   The old `true`/`false` values still work (`true` = hide, `false` = show).
 - **Custom Patterns:** Use the `--ignore` flag to skip files or directories using glob patterns. Multiple patterns can be separated by commas.
   ```bash

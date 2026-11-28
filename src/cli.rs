@@ -1,3 +1,4 @@
+use crate::config::{GitIgnoreMode, SortKey};
 use clap::Parser;
 use std::path::PathBuf;
 
@@ -53,9 +54,18 @@ pub struct Cli {
     #[arg(short = 'F', long)]
     pub classify: bool,
 
-    /// Do not respect .gitignore files
-    #[arg(short = 'G', long, visible_alias = "nogit")]
+    /// Do not respect .gitignore files (same as --git-ignore=show)
+    #[arg(
+        short = 'G',
+        long,
+        visible_alias = "nogit",
+        conflicts_with = "git_ignore"
+    )]
     pub no_git_ignore: bool,
+
+    /// What to do with entries matched by .gitignore (overrides config)
+    #[arg(long, value_name = "MODE", value_enum)]
+    pub git_ignore: Option<GitIgnoreMode>,
 
     /// Display one entry per line
     #[arg(short = '1', long = "one-per-line")]
@@ -77,9 +87,9 @@ pub struct Cli {
     #[arg(long, short = 'o')]
     pub octal: bool,
 
-    /// Sort by key: name, name_natural, extension, size, modified, created, git_status, none
-    #[arg(long, value_name = "KEY")]
-    pub sort: Option<String>,
+    /// Sort by key
+    #[arg(long, value_name = "KEY", value_enum)]
+    pub sort: Option<SortKey>,
 
     /// Sort by modification time, newest first (shorthand: --sort=modified --reverse)
     #[arg(short = 't', conflicts_with = "sort")]
@@ -162,8 +172,7 @@ impl Cli {
     }
 
     /// Returns the sort key and whether it forces reverse (`-t`, `-S` list newest/largest first).
-    pub fn resolve_sort_key(&self) -> (Option<crate::config::SortKey>, bool) {
-        use crate::config::SortKey;
+    pub fn resolve_sort_key(&self) -> (Option<SortKey>, bool) {
         if self.sort_time {
             return (Some(SortKey::Modified), true);
         }
@@ -179,24 +188,7 @@ impl Cli {
         if self.sort_none {
             return (Some(SortKey::None), false);
         }
-        if let Some(ref s) = self.sort {
-            let key = match s.as_str() {
-                "name" => SortKey::Name,
-                "name_natural" => SortKey::NameNatural,
-                "extension" => SortKey::Extension,
-                "size" => SortKey::Size,
-                "modified" => SortKey::Modified,
-                "created" => SortKey::Created,
-                "git_status" => SortKey::GitStatus,
-                "none" => SortKey::None,
-                unknown => {
-                    eprintln!(
-                        "elx: unknown sort key '{}', falling back to 'name'",
-                        unknown
-                    );
-                    SortKey::Name
-                }
-            };
+        if let Some(key) = self.sort {
             return (Some(key), false);
         }
         (None, false)
@@ -207,6 +199,20 @@ impl Cli {
 mod tests {
     use super::Cli;
     use clap::Parser;
+
+    #[test]
+    fn sort_rejects_unknown_keys_and_accepts_snake_case() {
+        assert!(Cli::try_parse_from(["elx", "--sort", "bogus"]).is_err());
+        let cli = Cli::try_parse_from(["elx", "--sort", "name_natural"]).unwrap();
+        assert_eq!(cli.sort, Some(super::SortKey::NameNatural));
+    }
+
+    #[test]
+    fn git_ignore_mode_flag_parses_and_conflicts_with_g() {
+        let cli = Cli::try_parse_from(["elx", "--git-ignore", "dim"]).unwrap();
+        assert_eq!(cli.git_ignore, Some(super::GitIgnoreMode::Dim));
+        assert!(Cli::try_parse_from(["elx", "-G", "--git-ignore", "hide"]).is_err());
+    }
 
     #[test]
     fn git_ignore_can_be_disabled_with_all_supported_flags() {

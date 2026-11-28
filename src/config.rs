@@ -33,8 +33,9 @@ impl Default for HyperlinkConfig {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize, Serialize, clap::ValueEnum)]
 #[serde(rename_all = "snake_case")]
+#[value(rename_all = "snake_case")]
 pub enum SortKey {
     #[default]
     Name,
@@ -145,11 +146,12 @@ impl Default for Config {
 }
 
 /// What to do with entries matched by `.gitignore`.
-#[derive(Deserialize, Serialize, Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Deserialize, Serialize, Debug, Clone, Copy, PartialEq, Eq, Default, clap::ValueEnum)]
 #[serde(rename_all = "snake_case", from = "GitIgnoreValue")]
 pub enum GitIgnoreMode {
     #[default]
     Hide,
+    /// Show greyed out
     Dim,
     Show,
 }

@@ -89,6 +89,9 @@ impl DisplayOptions {
         if cli.no_git_ignore {
             git_ignore = GitIgnoreMode::Show;
         }
+        if let Some(mode) = cli.git_ignore {
+            git_ignore = mode;
+        }
         if cli.one_per_line {
             one_per_line = true;
         }

@@ -22,7 +22,7 @@ Order matters: later items build on earlier ones.
 - [x] **Per-mode overrides `[all]` / `[tree]`** [0]: `ModeOverrides` with `icons`, `color`, `classify`, `git_ignore`, `ignore` (replaces). `collapse` gets added with tree collapse.
   - [x] `[when_not_tty]` moved onto `ModeOverrides` (unset keys now inherit instead of defaulting to `false`).
 - [x] **`git_ignore = "hide" | "dim" | "show"`** [1]: old booleans still accepted; `-G` = `show`; dim = `DarkGrey` name, only with colors on.
-  - [ ] Optional: `--git-ignore=<mode>` CLI flag (now only via config / `[all]` / `[tree]`).
+  - [x] Optional: `--git-ignore=<mode>` CLI flag (now only via config / `[all]` / `[tree]`).
   - Note: `-T` with `dim` and no `--depth` walks into ignored dirs like `target/`; tree collapse fixes that.
 - [x] **Tree collapse** [2]: `collapse` (gitignore-style patterns) in config and modes, `--collapse`, `--no-collapse`; rendered as `name …`.
   - [ ] Optional: entry count in the marker (`target … 1234`); needs a `read_dir` per collapsed dir.
@@ -40,7 +40,7 @@ Order matters: later items build on earlier ones.
 
 ## UX
 
-- [ ] `--sort` as `clap::ValueEnum` instead of `String` (error with valid values instead of silent fallback).
+- [x] `--sort` as `clap::ValueEnum` instead of `String` (error with valid values instead of silent fallback).
 - [ ] `--print-config`: effective config after all layers for the current flags.
 - [ ] `-L <N>` alias for `--depth`; `--depth` without `-T` enables tree.
 - [ ] Shell completions via `clap_complete` (new dep) behind hidden `--completions <shell>`.
