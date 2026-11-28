@@ -13,7 +13,7 @@ filtering via `ignore`, layered config via `figment`.
 - `make install`: release build into `~/.local/bin/elx`.
 - `make changelog`: regenerate `CHANGELOG.md` (needs `git-cliff`).
 - Manual check: `./target/debug/elx -l`, `-T --depth 2`, `--no-color --no-icons` (no TTY changes the defaults, see `[when_not_tty]`).
-- Integration tests are in `tests/` (`git_status.rs`, `terminal_output.rs`); unit tests sit next to the code.
+- Integration tests are in `tests/` (one file per topic: `git_status.rs`, `filtering.rs`, `multiple_paths.rs`, ...); unit tests sit next to the code.
 - `cargo fmt --check` and `cargo clippy --all-targets` are clean; keep them that way.
 
 ## Git workflow

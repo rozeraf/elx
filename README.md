@@ -15,6 +15,7 @@ While tools like `eza` and `lsd` are excellent, they often come with trade-offs:
 ## Key Features
 
 - **Display Modes:** Grid (default), Long (`-l`), and Tree (`-T`).
+- **Several paths:** `elx *.toml` or `elx src tests` work like `ls`: files first, then each directory under a `path:` header.
 - **Tree Mode:** Recursive directory visualization with configurable depth (`--depth`/`-L`, which also turns tree mode on).
 - **Metadata:** Integrated metadata display (permissions, owner, size, date) in both Long and Tree views.
 - **Git Status:** Integrated file status (`U` conflict, `M`, `A`, `D`, `?`, `!`) powered by `gix`, computed only for the listed path.
@@ -23,7 +24,7 @@ While tools like `eza` and `lsd` are excellent, they often come with trade-offs:
 - **Rich Visuals:** Nerd Font icons and color-coded output by file type.
 - **Layered Config:** Robust configuration via `config.toml`, environment variables, and CLI flags.
 - **Auto-Config:** Easy setup with `--init-config` to generate a default configuration file.
-- **Classify:** Automatic indicator (`/`) for directories via `-F` or config.
+- **Classify:** `ls -F` indicators (`/` directory, `@` symlink, `*` executable, `|` FIFO, `=` socket) via `-F` or config.
 
 In long listings, directory Git summaries show `M` when tracked descendants have
 changes (including staged changes and deletions), or `?` when only untracked

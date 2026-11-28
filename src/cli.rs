@@ -6,9 +6,9 @@ use std::path::PathBuf;
 #[command(name = "elx", version)]
 #[command(about = "A personal ls-clone in Rust with Git integration and Tree view", long_about = None)]
 pub struct Cli {
-    /// Path to the directory or file
-    #[arg(default_value = ".")]
-    pub path: PathBuf,
+    /// Directories or files to list
+    #[arg(default_value = ".", value_name = "PATH")]
+    pub paths: Vec<PathBuf>,
 
     /// Use long listing format (includes Git status)
     #[arg(short = 'l', long)]

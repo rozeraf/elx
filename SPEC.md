@@ -17,22 +17,27 @@ gitignore-aware filtering and a layered TOML config.
 ## 2. Invocation
 
 ```
-elx [OPTIONS] [PATH]
+elx [OPTIONS] [PATH]...
 ```
 
-`PATH` defaults to `.`. Exactly one path is accepted.
+`PATH` defaults to `.`. Several paths can be given (`elx *.toml`, `elx src tests`); like `ls`:
 
-- Missing path (and not a dangling symlink): error `elx: cannot access '<path>': No such file or directory`, exit 1.
-- Path is not a directory: that single entry is shown in the selected view, with its git status.
-  `--only`, `--changed`, `-D` and `--files-only` do not apply to it (like `ls file`).
-- Path is a directory: its contents are listed; in tree view, recursively.
+- Missing path (and not a dangling symlink): `elx: cannot access '<path>': No such file or directory`
+  on stderr; the other paths are still listed and the exit status is 1.
+- File operands (anything that is not a directory) are shown first, as one list in the selected
+  view, sorted with the normal sort options and printed with the path as given (`src/main.rs`),
+  with their git status. `--only`, `--changed`, `-D` and `--files-only` do not apply to them.
+- Then each directory operand, sorted the same way. With more than one operand, each directory
+  listing is preceded by a `<path>:` line and separated by a blank line. In tree view each
+  directory gets its own tree.
+- The hidden-entries footer (section 5.6) is printed once, with counts summed over all directories.
 
 ### 2.1 Exit status
 
 | Code | Meaning |
 |---|---|
 | 0 | Success. |
-| 1 | Path not found, invalid config generation, or at least one entry/directory could not be read. Unreadable entries are reported on stderr as `elx: <error>` and the rest of the listing is still printed. |
+| 1 | A path not found, invalid config generation, or at least one entry/directory could not be read. Unreadable entries are reported on stderr as `elx: <error>` and the rest of the listing is still printed. |
 | 2 | Invalid command line (clap): unknown flag, bad value, `--depth 0`, conflicting flags. |
 | SIGPIPE | When stdout is closed (`elx \| head`), elx is killed by SIGPIPE silently, like `ls`. |
 

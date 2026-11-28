@@ -36,6 +36,14 @@ pub struct HiddenCounts {
 }
 
 impl HiddenCounts {
+    pub fn add(&mut self, other: &HiddenCounts) {
+        self.dotfiles += other.dotfiles;
+        self.gitignored += other.gitignored;
+        self.pattern += other.pattern;
+        self.cli_pattern += other.cli_pattern;
+        self.ignore_files += other.ignore_files;
+    }
+
     pub fn total(&self) -> usize {
         self.dotfiles + self.gitignored + self.pattern + self.cli_pattern + self.ignore_files
     }

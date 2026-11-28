@@ -63,13 +63,6 @@ fn main() -> Result<()> {
         return Ok(());
     }
 
-    if !args.path.exists() && !args.path.is_symlink() {
-        anyhow::bail!(
-            "elx: cannot access '{}': No such file or directory",
-            args.path.display()
-        );
-    }
-
     let options = DisplayOptions::new(&config, &args);
     if args.print_config {
         print!(
@@ -83,62 +76,64 @@ fn main() -> Result<()> {
         return Ok(());
     }
     let theme = Theme::new();
-
-    if !args.path.is_dir() {
-        let mut entry = fs::entry::Entry::from_path(args.path.clone())?;
-        let status_path = git::status_path(&entry.abs_path);
-        if let Some(repo_root) = status_path.parent().and_then(git::find_repo) {
-            let statuses =
-                git::get_statuses(&repo_root, true, std::slice::from_ref(&entry.abs_path));
-            entry.git_status = git::status_for_path(&statuses, &entry.abs_path);
-        }
-        render_entries(vec![entry], &args, &config, &options, &theme);
-        return Ok(());
-    }
-
-    let max_depth = if args.tree {
-        options.depth.unwrap_or(usize::MAX)
-    } else {
-        1
-    };
-
-    let walker = Walker::new(
-        &args.path,
-        WalkOptions {
-            show_hidden: options.show_hidden,
-            git_ignore: options.git_ignore,
-            ignore_files: options.ignore_files,
-            max_depth,
-            ignore_globs: options.ignore_globs.clone(),
-            cli_ignore_globs: args.ignore.clone(),
-            collapse_globs: options.collapse_globs.clone(),
-            count_hidden: options.hidden_summary,
-        },
-    );
     let sort_opts = build_sort_options(&config, &args, &options);
-    if args.changed && git::find_repo(&args.path).is_none() {
-        eprintln!(
-            "elx: --changed: {} is not inside a git repository",
-            args.path.display()
-        );
-    }
-    let filter = EntryFilter {
-        changed: args.changed,
-        only: if args.only.is_empty() {
-            None
-        } else {
-            Some(fs::walker::build_matcher(&args.path, &args.only)?)
-        },
-        dirs_only: args.dirs_only,
-        files_only: args.files_only,
-    };
-    let (entries, stats) = walker.collect()?;
-    let mut entries = filter.apply(entries);
-    sort_entries(&mut entries, &sort_opts);
 
-    render_entries(entries, &args, &config, &options, &theme);
+    // Like ls: file operands first as one list, then each directory under a "path:" header.
+    let mut errors = 0;
+    let mut files = Vec::new();
+    let mut dirs = Vec::new();
+    for path in &args.paths {
+        if !path.exists() && !path.is_symlink() {
+            eprintln!(
+                "elx: cannot access '{}': No such file or directory",
+                path.display()
+            );
+            errors += 1;
+            continue;
+        }
+        match fs::entry::Entry::from_path(path.clone()) {
+            Ok(entry) if path.is_dir() => dirs.push(entry),
+            Ok(mut entry) => {
+                // Show file operands as given, like ls (elx src/main.rs prints src/main.rs).
+                entry.name = path.to_string_lossy().into_owned();
+                files.push(entry);
+            }
+            Err(err) => {
+                eprintln!("elx: {}: {err}", path.display());
+                errors += 1;
+            }
+        }
+    }
+
+    let with_headers = args.paths.len() > 1;
+    if !files.is_empty() {
+        add_file_statuses(&mut files);
+        sort_entries(&mut files, &sort_opts);
+        render_entries(files, &args, &config, &options, &theme);
+        if !dirs.is_empty() {
+            println!();
+        }
+    }
+
+    sort_entries(&mut dirs, &sort_opts);
+    let mut hidden = HiddenCounts::default();
+    for (i, dir) in dirs.iter().enumerate() {
+        if with_headers {
+            if i > 0 {
+                println!();
+            }
+            println!(
+                "{}:",
+                display::formatter::escape_terminal_text(&dir.path.to_string_lossy())
+            );
+        }
+        let stats = list_directory(&dir.path, &args, &config, &options, &theme, &sort_opts)?;
+        hidden.add(&stats.hidden);
+        errors += stats.errors;
+    }
+
     if options.hidden_summary
-        && let Some(summary) = hidden_summary(&stats.hidden)
+        && let Some(summary) = hidden_summary(&hidden)
     {
         if !std::io::IsTerminal::is_terminal(&std::io::stdout()) {
             eprintln!("{summary}");
@@ -150,12 +145,81 @@ fn main() -> Result<()> {
         }
     }
 
-    if stats.errors > 0 {
+    if errors > 0 {
         // process::exit skips destructors, so flush buffered (piped) output first.
         let _ = std::io::Write::flush(&mut std::io::stdout());
         std::process::exit(1);
     }
     Ok(())
+}
+
+/// One git status run per repository, limited to the given files.
+fn add_file_statuses(files: &mut [fs::entry::Entry]) {
+    let mut by_repo: std::collections::HashMap<std::path::PathBuf, Vec<usize>> =
+        std::collections::HashMap::new();
+    for (i, entry) in files.iter().enumerate() {
+        let status_path = git::status_path(&entry.abs_path);
+        if let Some(repo_root) = status_path.parent().and_then(git::find_repo) {
+            by_repo.entry(repo_root).or_default().push(i);
+        }
+    }
+    for (repo_root, indices) in by_repo {
+        let scope: Vec<_> = indices.iter().map(|&i| files[i].abs_path.clone()).collect();
+        let statuses = git::get_statuses(&repo_root, true, &scope);
+        for i in indices {
+            files[i].git_status = git::status_for_path(&statuses, &files[i].abs_path);
+        }
+    }
+}
+
+fn list_directory(
+    path: &std::path::Path,
+    args: &Cli,
+    config: &Config,
+    options: &DisplayOptions,
+    theme: &Theme,
+    sort_opts: &SortOptions,
+) -> Result<fs::walker::WalkStats> {
+    let max_depth = if args.tree {
+        options.depth.unwrap_or(usize::MAX)
+    } else {
+        1
+    };
+
+    let walker = Walker::new(
+        path,
+        WalkOptions {
+            show_hidden: options.show_hidden,
+            git_ignore: options.git_ignore,
+            ignore_files: options.ignore_files,
+            max_depth,
+            ignore_globs: options.ignore_globs.clone(),
+            cli_ignore_globs: args.ignore.clone(),
+            collapse_globs: options.collapse_globs.clone(),
+            count_hidden: options.hidden_summary,
+        },
+    );
+    if args.changed && git::find_repo(path).is_none() {
+        eprintln!(
+            "elx: --changed: {} is not inside a git repository",
+            path.display()
+        );
+    }
+    let filter = EntryFilter {
+        changed: args.changed,
+        only: if args.only.is_empty() {
+            None
+        } else {
+            Some(fs::walker::build_matcher(path, &args.only)?)
+        },
+        dirs_only: args.dirs_only,
+        files_only: args.files_only,
+    };
+    let (entries, stats) = walker.collect()?;
+    let mut entries = filter.apply(entries);
+    sort_entries(&mut entries, sort_opts);
+    render_entries(entries, args, config, options, theme);
+    Ok(stats)
 }
 
 fn value_name<T: clap::ValueEnum>(value: T) -> String {

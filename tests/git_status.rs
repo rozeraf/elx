@@ -98,7 +98,11 @@ fn status(output: &str, name: &str) -> Option<char> {
     let line = output
         .lines()
         .find(|line| {
-            line.split_whitespace().last() == Some(name) || line.contains(&format!(" {name} -> "))
+            let last = line.split_whitespace().last().unwrap_or_default();
+            // File operands are printed as given, i.e. as full paths here.
+            last == name
+                || last.ends_with(&format!("/{name}"))
+                || line.contains(&format!("{name} -> "))
         })
         .unwrap_or_else(|| panic!("missing {name}: {output}"));
     let first = line.chars().next().unwrap();
