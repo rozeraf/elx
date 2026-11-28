@@ -20,6 +20,12 @@ use theme::Theme;
 use unicode_width::UnicodeWidthStr;
 
 fn main() -> Result<()> {
+    // Rust ignores SIGPIPE, so `elx | head` would panic in println!. Die quietly like ls instead.
+    // SAFETY: called before any other thread exists; SIG_DFL is a valid handler.
+    unsafe {
+        libc::signal(libc::SIGPIPE, libc::SIG_DFL);
+    }
+
     let args = Cli::parse();
 
     let config = Config::load();

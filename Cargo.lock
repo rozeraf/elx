@@ -441,6 +441,7 @@ dependencies = [
  "figment",
  "gix",
  "ignore",
+ "libc",
  "regex",
  "serde",
  "terminal_size",

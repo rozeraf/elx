@@ -16,6 +16,7 @@ dirs = "6.0.0"
 figment = { version = "0.10.19", features = ["toml", "env"] }
 gix = "0.70.0"
 ignore = "0.4.25"
+libc = "0.2.186"
 regex = "1.12.3"
 serde = { version = "1.0.228", features = ["derive"] }
 terminal_size = "0.4.4"
