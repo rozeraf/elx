@@ -1,4 +1,4 @@
-.PHONY: all build install uninstall clean
+.PHONY: all build install uninstall clean changelog
 
 all: build
 
@@ -15,3 +15,7 @@ uninstall:
 
 clean:
 	cargo clean
+
+# TAG=vX.Y.Z labels unreleased commits with the upcoming version.
+changelog:
+	git-cliff $(if $(TAG),--tag $(TAG)) -o CHANGELOG.md

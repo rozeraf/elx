@@ -11,13 +11,16 @@ filtering via `ignore`, layered config via `figment`.
 ## Commands
 - `cargo build` / `cargo test` / `cargo clippy`
 - `make install`: release build into `~/.local/bin/elx`.
+- `make changelog`: regenerate `CHANGELOG.md` (needs `git-cliff`).
 - Manual check: `./target/debug/elx -l`, `-T --depth 2`, `--no-color --no-icons` (no TTY changes the defaults, see `[when_not_tty]`).
 - Integration tests are in `tests/` (`git_status.rs`, `terminal_output.rs`); unit tests sit next to the code.
 - `cargo fmt --check` and `cargo clippy --all-targets` are clean; keep them that way.
 
 ## Git workflow
 - `main` = latest release, tagged `vX.Y.Z`. `dev` = integration branch; work there or in a feature branch off it.
-- Release: bump `version` in `Cargo.toml` + `Cargo.lock`, commit `chore: release X.Y.Z`, merge into `main`, tag.
+- Release: bump `version` in `Cargo.toml` + `Cargo.lock`, `make changelog TAG=vX.Y.Z`, commit `chore: release X.Y.Z`, merge into `main`, tag.
+  Pushing the tag runs `.github/workflows/release.yml`: a GitHub release with notes from `git-cliff --latest`.
+- `CHANGELOG.md` is generated (`cliff.toml`); don't edit it by hand, fix commit messages instead.
 - Conventional Commits. Commit on your own after each verified, logically complete step (split by topic). Push, merge and tag only when the user asks.
 
 ## Architecture
