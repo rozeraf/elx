@@ -216,10 +216,23 @@ impl Walker {
                     entry.collapsed =
                         Some(std::fs::read_dir(&entry_path).map_or(0, |dir| dir.count()));
                 } else {
+                    // A nested repository (or submodule) has its own .gitignore and status,
+                    // which the outer repository's git status does not look into.
+                    let nested;
+                    let child_statuses = if entry_path.join(".git").exists() {
+                        nested = find_repo(&entry.abs_path)
+                            .map(|root| {
+                                get_statuses(&root, true, std::slice::from_ref(&entry.abs_path))
+                            })
+                            .unwrap_or_default();
+                        &nested
+                    } else {
+                        git_statuses
+                    };
                     entry.children = Some(self.collect_at(
                         &entry_path,
                         current_depth + 1,
-                        git_statuses,
+                        child_statuses,
                         matchers,
                         stats,
                     ));

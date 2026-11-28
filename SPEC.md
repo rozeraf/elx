@@ -332,7 +332,8 @@ way. Sorting is stable.
 
 ## 8. Git integration
 
-- The repository is discovered from the listed path upwards (gix). Outside a repository there is no
+- The repository is discovered from the listed path upwards (gix). A nested repository or submodule
+  met during the walk gets its own git status and `.gitignore` rules for its subtree. Outside a repository there is no
   git status and `.gitignore` files are not honoured (`.elxignore` is).
 - Statuses: index vs HEAD (`A`, `D`, `M`) and worktree vs index (`M`, `D`), untracked (`?`),
   ignored (`!`), conflicts (`U`).

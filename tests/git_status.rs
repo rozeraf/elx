@@ -260,6 +260,25 @@ fn directory_with_only_ignored_files_stays_visible() {
 }
 
 #[test]
+fn nested_repositories_use_their_own_gitignore() {
+    let repo = Repo::new();
+    repo.write("inner/kept", "x\n");
+    repo.write("inner/gen/out", "x\n");
+    repo.write("inner/.gitignore", "gen/\n");
+    let status = repo
+        .command("git")
+        .args(["init", "-q"])
+        .current_dir(repo.path().join("inner"))
+        .status()
+        .unwrap();
+    assert!(status.success());
+    let output = repo.list(&repo.path(), &["-T"]);
+    assert!(output.contains("kept"), "{output}");
+    assert!(!output.contains("gen"), "{output}");
+    assert!(repo.list(&repo.path(), &["-T", "-G"]).contains("out"));
+}
+
+#[test]
 fn listing_an_ignored_directory_shows_its_contents() {
     let repo = Repo::new();
     repo.write("cache/deep/file", "ignored\n");
