@@ -336,5 +336,7 @@ way. Sorting is stable.
 - Directories get a summary status: `M` if any descendant is conflicted/modified/added/deleted, otherwise `?`
   if any descendant is untracked. Ignored descendants do not mark the directory.
 - An entry inside an ignored directory is ignored.
+- When git reports several statuses for one path (e.g. deleted from the index and ignored), the most
+  important one is kept: U, D, M, A, ?, !. So a staged change is never hidden as ignored.
 - Paths are matched by canonical absolute path of the parent directory (the final symlink is not
   followed), so listing through a symlinked directory or a relative path gives the same statuses.

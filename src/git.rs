@@ -42,6 +42,29 @@ pub fn status_for_path(statuses: &HashMap<PathBuf, GitStatus>, path: &Path) -> O
 }
 
 /// `scope`: absolute paths to report on; git status skips everything else, which matters in big repos.
+/// gix can report one path several times (index vs HEAD, worktree, dirwalk) in no fixed order;
+/// keep the most important status so the result, and whether the entry is hidden, is stable.
+fn insert_status(statuses: &mut HashMap<PathBuf, GitStatus>, path: PathBuf, status: GitStatus) {
+    fn rank(status: GitStatus) -> u8 {
+        match status {
+            GitStatus::Conflict => 0,
+            GitStatus::Deleted => 1,
+            GitStatus::Modified => 2,
+            GitStatus::Added => 3,
+            GitStatus::Untracked => 4,
+            GitStatus::Ignored => 5,
+        }
+    }
+    statuses
+        .entry(path)
+        .and_modify(|existing| {
+            if rank(status) < rank(*existing) {
+                *existing = status;
+            }
+        })
+        .or_insert(status);
+}
+
 pub fn get_statuses(
     repo_root: &Path,
     include_ignored: bool,
@@ -113,7 +136,7 @@ pub fn get_statuses(
                                         _ => None,
                                     };
                                     if let Some(s) = git_status {
-                                        statuses.insert(path, s);
+                                        insert_status(&mut statuses, path, s);
                                     }
                                 }
                                 WorktreeItem::DirectoryContents { entry, .. } => {
@@ -129,7 +152,7 @@ pub fn get_statuses(
                                         _ => None,
                                     };
                                     if let Some(s) = git_status {
-                                        statuses.insert(path, s);
+                                        insert_status(&mut statuses, path, s);
                                     }
                                 }
                                 _ => {}
@@ -145,7 +168,7 @@ pub fn get_statuses(
                                 Change::Modification { .. } => GitStatus::Modified,
                                 Change::Rewrite { .. } => GitStatus::Modified,
                             };
-                            statuses.insert(path, git_status);
+                            insert_status(&mut statuses, path, git_status);
                         }
                     }
                 }
@@ -179,4 +202,23 @@ pub fn get_statuses(
         statuses.entry(path).or_insert(status);
     }
     statuses
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{GitStatus, insert_status};
+    use std::collections::HashMap;
+    use std::path::PathBuf;
+
+    #[test]
+    fn the_most_important_status_wins_in_any_order() {
+        let order = [GitStatus::Ignored, GitStatus::Deleted, GitStatus::Untracked];
+        for rotation in 0..order.len() {
+            let mut statuses = HashMap::new();
+            for status in order.iter().cycle().skip(rotation).take(order.len()) {
+                insert_status(&mut statuses, PathBuf::from("f"), *status);
+            }
+            assert_eq!(statuses[&PathBuf::from("f")], GitStatus::Deleted);
+        }
+    }
 }
