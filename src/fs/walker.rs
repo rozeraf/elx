@@ -31,7 +31,7 @@ pub struct HiddenCounts {
     pub pattern: usize,
     /// `--ignore` on the command line.
     pub cli_pattern: usize,
-    /// `.elxignore`/`.ignore` files, or tracked files matched by `.gitignore`.
+    /// `.elxignore`/`.ignore` files.
     pub ignore_files: usize,
 }
 
@@ -78,14 +78,16 @@ impl Walker {
 
     pub fn collect(&self) -> Result<(Vec<Entry>, WalkStats)> {
         let abs_root = self.path.canonicalize().unwrap_or(self.path.clone());
+        // Gitignore is decided by git status rather than by the walker's own .gitignore matching,
+        // so tracked files that match a pattern stay visible, as in git.
         let git_statuses = if let Some(repo_root) = find_repo(&abs_root) {
-            // Ignored statuses also tell gitignored entries apart when counting hidden ones.
-            let include_ignored =
-                self.opts.git_ignore != GitIgnoreMode::Hide || self.opts.count_hidden;
-            get_statuses(&repo_root, include_ignored)
+            get_statuses(&repo_root, true)
         } else {
             HashMap::new()
         };
+        // Listing inside an ignored directory (elx target) shows its contents.
+        let hide_git_ignored = self.opts.git_ignore == GitIgnoreMode::Hide
+            && status_for_path(&git_statuses, &abs_root) != Some(GitStatus::Ignored);
 
         let matchers = Matchers {
             ignore: build_matcher(&self.path, &self.opts.ignore_globs)?,
@@ -94,7 +96,14 @@ impl Walker {
         };
 
         let mut stats = WalkStats::default();
-        let entries = self.collect_at(&self.path, 1, &git_statuses, &matchers, &mut stats);
+        let entries = self.collect_at(
+            &self.path,
+            1,
+            &git_statuses,
+            hide_git_ignored,
+            &matchers,
+            &mut stats,
+        );
         Ok((entries, stats))
     }
 
@@ -139,19 +148,19 @@ impl Walker {
         path: &Path,
         current_depth: usize,
         git_statuses: &HashMap<PathBuf, GitStatus>,
+        hide_git_ignored: bool,
         matchers: &Matchers,
         stats: &mut WalkStats,
     ) -> Vec<Entry> {
         let mut entries = Vec::new();
 
-        let hide_git_ignored = self.opts.git_ignore == GitIgnoreMode::Hide;
         let ignore = matchers.ignore.clone();
         let mut builder = WalkBuilder::new(path);
         builder
             .hidden(!self.opts.show_hidden)
-            .git_ignore(hide_git_ignored)
-            .git_exclude(hide_git_ignored)
-            .git_global(hide_git_ignored)
+            .git_ignore(false)
+            .git_exclude(false)
+            .git_global(false)
             .ignore(self.opts.ignore_files)
             .max_depth(Some(1))
             .filter_entry(move |e| {
@@ -187,6 +196,9 @@ impl Walker {
                 }
             };
             entry.git_status = status_for_path(git_statuses, &entry.abs_path);
+            if hide_git_ignored && entry.git_status == Some(GitStatus::Ignored) {
+                continue;
+            }
 
             if entry.metadata.is_dir() && current_depth < self.opts.max_depth {
                 if matchers.collapse.matched(&entry_path, true).is_ignore() {
@@ -197,6 +209,7 @@ impl Walker {
                         &entry_path,
                         current_depth + 1,
                         git_statuses,
+                        hide_git_ignored,
                         matchers,
                         stats,
                     ));

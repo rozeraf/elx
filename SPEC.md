@@ -169,8 +169,11 @@ section is absent. Hyperlinks are always disabled when stdout is not a terminal.
 For each listed directory, entries are dropped in this order:
 
 1. Dotfiles (unless `-a`/`-u`).
-2. Gitignore rules: `.gitignore`, `.git/info/exclude` and the global git excludes file, only
-   when `git_ignore = "hide"` and only inside a git repository (like git itself).
+2. Gitignored entries, only when `git_ignore = "hide"` and only inside a git repository. An entry
+   is gitignored when git status reports it as ignored (`.gitignore`, `.git/info/exclude`, the
+   global excludes file), so tracked files that match a pattern stay visible, as in git.
+   When the listed path is itself inside an ignored directory (`elx target`), nothing below it is
+   hidden for this reason; entries are still marked `!`.
 3. `.ignore` and `.elxignore` files (unless `-u`).
 4. `ignore` patterns (config, then `--ignore`).
 
@@ -234,8 +237,7 @@ Only non-zero reasons appear; nothing is printed when nothing was hidden. Each e
 once, under the first reason in that order. Counted per listed directory, including every
 directory walked in tree view, but not inside collapsed directories or beyond `--depth`.
 Entries removed by post-filters (section 5.5) are not counted.
-"Ignore files" also covers tracked files matched by `.gitignore` (git does not report them as
-ignored). Disable the line with `show_hidden_summary = false` or `ELX_SHOW_HIDDEN_SUMMARY=false`.
+Disable the line with `show_hidden_summary = false` or `ELX_SHOW_HIDDEN_SUMMARY=false`.
 
 ## 6. Views
 

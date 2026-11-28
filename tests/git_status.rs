@@ -189,6 +189,27 @@ fn dim_mode_lists_ignored_entries_greyed_out() {
 }
 
 #[test]
+fn tracked_files_matching_gitignore_stay_visible_like_in_git() {
+    let repo = Repo::new();
+    repo.write("build.log", "tracked\n");
+    repo.git(&["add", "build.log"]);
+    repo.git(&["commit", "-qm", "track a log"]);
+    repo.write(".gitignore", "ignored\ncache/\n*.log\n");
+    repo.write("new.log", "untracked\n");
+    let output = repo.list(&repo.path(), &[]);
+    assert!(output.contains("build.log"), "{output}");
+    assert!(!output.contains("new.log"), "{output}");
+}
+
+#[test]
+fn listing_an_ignored_directory_shows_its_contents() {
+    let repo = Repo::new();
+    repo.write("cache/deep/file", "ignored\n");
+    let output = repo.list(&repo.path().join("cache"), &[]);
+    assert_eq!(status(&output, "deep"), Some('!'));
+}
+
+#[test]
 fn show_mode_also_ignores_git_exclude_file() {
     let repo = Repo::new();
     repo.write("excluded", "local\n");
