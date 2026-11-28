@@ -26,8 +26,8 @@ pub struct Cli {
     #[arg(short = 'T', long)]
     pub tree: bool,
 
-    /// Maximum recursion depth for tree view (implies --tree)
-    #[arg(short = 'L', long)]
+    /// Maximum recursion depth for tree view, at least 1 (implies --tree)
+    #[arg(short = 'L', long, value_parser = parse_depth)]
     pub depth: Option<usize>,
 
     /// Do not display icons
@@ -87,7 +87,8 @@ pub struct Cli {
     #[arg(long)]
     pub files_only: bool,
 
-    /// Show only entries with git changes (M, A, D, ?) and the directories containing them
+    /// Show only entries with git changes (M, A, D, ?) and the directories containing them.
+    /// Deleted files are gone from disk, so only their directories show up
     #[arg(long)]
     pub changed: bool,
 
@@ -172,6 +173,14 @@ pub struct Cli {
     pub print_config: bool,
 }
 
+fn parse_depth(value: &str) -> Result<usize, String> {
+    match value.parse::<usize>() {
+        Ok(0) => Err("must be at least 1".to_string()),
+        Ok(depth) => Ok(depth),
+        Err(err) => Err(err.to_string()),
+    }
+}
+
 impl Cli {
     pub fn unrestricted(&self) -> bool {
         self.unrestricted || self.all >= 2
@@ -254,6 +263,15 @@ mod tests {
         assert_eq!(
             key(&["--sort", "size", "-X"]),
             (Some(SortKey::Extension), false)
+        );
+    }
+
+    #[test]
+    fn depth_must_be_positive() {
+        assert!(Cli::try_parse_from(["elx", "-L", "0"]).is_err());
+        assert_eq!(
+            Cli::try_parse_from(["elx", "-L", "2"]).unwrap().depth,
+            Some(2)
         );
     }
 

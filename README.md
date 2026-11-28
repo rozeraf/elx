@@ -51,7 +51,8 @@ also works for an explicitly listed file and through directory symlinks.
 - **`.elxignore`:** Per-project ignore file with gitignore syntax, read in every directory like `.gitignore`
   (`.ignore` files work too). Unlike `.gitignore`, it is not affected by `git_ignore`.
 - **Narrowing:** `--only <globs>` shows only matching files, `-D`/`--dirs-only` only directories, `--files-only`
-  only non-directories, `--changed` only entries with git changes (`M`, `A`, `D`, `?`). In tree view the directories
+  only non-directories, `--changed` only entries with git changes (`M`, `A`, `D`, `?`; deleted files are no longer
+  on disk, so only their directories show up). In tree view the directories
   leading to a match stay, empty branches are dropped. `elx -T --changed` gives an overview of what changed in a repo.
 - **Hidden Summary:** In a terminal, a line below the listing tells what was hidden and how to show it, e.g.
   `4 hidden: 3 dotfiles (-a), 1 gitignored (-G)`. Other reasons: config patterns (`--no-config-ignore`),
