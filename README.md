@@ -38,11 +38,20 @@ also works for an explicitly listed file and through directory symlinks.
 - **Git Ignore:** Entries matched by `.gitignore` are hidden by default. Set `git_ignore = "dim"` to show them
   greyed out, or `"show"` to list them normally (same as `-G`, `--nogit`, `--no-git-ignore`).
   `--git-ignore <hide|dim|show>` overrides the config for one run.
-  The old `true`/`false` values still work (`true` = hide, `false` = show).
-- **Custom Patterns:** Use the `--ignore` flag to skip files or directories using glob patterns. Multiple patterns can be separated by commas.
+  The old `true`/`false` values still work (`true` = hide, `false` = show). `.git/info/exclude` and the global
+  git excludes file follow the same setting.
+- **Custom Patterns:** `--ignore` skips files or directories using gitignore-style patterns, comma-separated.
+  Patterns containing a `/` are anchored to the listed directory. Config patterns come first, CLI patterns after,
+  and the last match wins, so `!pattern` re-includes something the config hides:
   ```bash
   elx --ignore "*.json,node_modules,target"
+  elx -a --ignore '!.env.example'   # config has ignore = [".env*"]
   ```
+  `--no-config-ignore` drops the config patterns for one run (`--ignore` still applies).
+- **`.elxignore`:** Per-project ignore file with gitignore syntax, read in every directory like `.gitignore`
+  (`.ignore` files work too). Unlike `.gitignore`, it is not affected by `git_ignore`.
+- **Show Everything:** `-u`/`--unrestricted` (or `-aa`) turns off all filtering: dotfiles, `.gitignore`,
+  `.elxignore`/`.ignore` and config patterns. Explicit `--ignore` and `--git-ignore` still apply.
 - **Tree Collapse:** In tree view, directories matching `collapse` patterns (gitignore syntax) are shown as
   `name …` without listing their contents. `--collapse <globs>` adds patterns, `--no-collapse` expands everything.
 - **Persistent Ignore:** Patterns can also be defined in your `config.toml`:

@@ -187,3 +187,15 @@ fn dim_mode_lists_ignored_entries_greyed_out() {
         assert!(!stdout.contains("\x1b[38;5;8mnested"), "{view}: {stdout:?}");
     }
 }
+
+#[test]
+fn show_mode_also_ignores_git_exclude_file() {
+    let repo = Repo::new();
+    repo.write("excluded", "local\n");
+    std::fs::write(repo.path().join(".git/info/exclude"), "excluded\n").unwrap();
+    assert!(!repo.list(&repo.path(), &[]).contains("excluded"));
+    assert_eq!(
+        status(&repo.list(&repo.path(), &["-G"]), "excluded"),
+        Some('!')
+    );
+}

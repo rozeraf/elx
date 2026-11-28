@@ -288,7 +288,7 @@ color = true
 # Entries matched by .gitignore: "hide", "dim" (shown greyed out) or "show"
 git_ignore = "hide"
 
-# Global ignore patterns (glob)
+# Global ignore patterns (gitignore syntax; "!pattern" re-includes, the last match wins)
 # Example: ignore = ["*.json", "node_modules", "bin"]
 ignore = []
 

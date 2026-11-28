@@ -30,13 +30,13 @@ Order matters: later items build on earlier ones.
   - [ ] Walker counts skipped entries by reason (hidden / gitignored / pattern).
   - [ ] Footer `N hidden (…) — use -a / -G to show`, TTY only.
   - [ ] `show_hidden_summary = false` to disable.
-- [ ] **Show everything / disable config ignore** [4]
-  - [ ] `--no-config-ignore`.
-  - [ ] `-aa` (`ArgAction::Count`) or `-u`: hidden + gitignore + config patterns off. Check `--all` still works.
+- [x] **Show everything / disable config ignore** [4]
+  - [x] `--no-config-ignore`.
+  - [x] `-aa` (`ArgAction::Count`) or `-u`: hidden + gitignore + config patterns off. Check `--all` still works.
 - [ ] **`--changed`** [5]: only `M/A/D/?` entries plus their parent dirs.
 - [ ] **`--only <globs>`, `-D/--dirs-only`, `--files-only`** [6]; prune empty dirs in tree.
-- [ ] **Negation in `--ignore`** (`!pattern` re-includes) [7]. Check `OverrideBuilder` whitelist semantics first.
-- [ ] **`.elxignore`** [8]: `WalkBuilder::add_custom_ignore_filename`.
+- [x] **Negation in `--ignore`** (`!pattern` re-includes) [7]. Check `OverrideBuilder` whitelist semantics first.
+- [x] **`.elxignore`** [8]: `WalkBuilder::add_custom_ignore_filename`.
 
 ## UX
 

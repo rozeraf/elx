@@ -25,6 +25,8 @@ pub struct DisplayOptions {
     pub hyperlinks: HyperlinkConfig,
     pub classify: bool,
     pub git_ignore: GitIgnoreMode,
+    pub show_hidden: bool,
+    pub ignore_files: bool,
     pub one_per_line: bool,
     pub long_view: bool,
     pub depth: Option<usize>,
@@ -52,7 +54,7 @@ impl DisplayOptions {
         let mut collapse_globs = config.collapse.clone();
 
         let active_modes: [(bool, &ModeOverrides); 3] = [
-            (cli.all, &config.all),
+            (cli.show_hidden(), &config.all),
             (cli.tree, &config.tree),
             (!is_tty, &config.when_not_tty),
         ];
@@ -86,6 +88,10 @@ impl DisplayOptions {
         if cli.classify {
             classify = true;
         }
+        let unrestricted = cli.unrestricted();
+        if unrestricted {
+            git_ignore = GitIgnoreMode::Show;
+        }
         if cli.no_git_ignore {
             git_ignore = GitIgnoreMode::Show;
         }
@@ -99,9 +105,10 @@ impl DisplayOptions {
             depth = cli.depth;
         }
 
-        if !cli.ignore.is_empty() {
-            ignore_globs.extend(cli.ignore.clone());
+        if cli.no_config_ignore || unrestricted {
+            ignore_globs.clear();
         }
+        ignore_globs.extend(cli.ignore.clone());
         if cli.no_collapse {
             collapse_globs.clear();
         }
@@ -118,6 +125,8 @@ impl DisplayOptions {
             hyperlinks,
             classify,
             git_ignore,
+            show_hidden: cli.show_hidden(),
+            ignore_files: !unrestricted,
             one_per_line,
             long_view,
             depth,
@@ -233,6 +242,30 @@ mod tests {
         assert_eq!(build(&["-T"]), ["target"]);
         assert_eq!(build(&["-T", "--collapse", "dist"]), ["target", "dist"]);
         assert!(build(&["-T", "--no-collapse"]).is_empty());
+    }
+
+    #[test]
+    fn unrestricted_disables_all_filters_but_keeps_explicit_flags() {
+        for args in [&["-u"][..], &["-aa"], &["--all", "--all"]] {
+            let o = opts(args, true);
+            assert!(o.show_hidden && !o.ignore_files, "{args:?}");
+            assert_eq!(o.git_ignore, GitIgnoreMode::Show);
+            assert!(o.ignore_globs.is_empty());
+            assert!(o.classify, "[all] applies with {args:?}");
+        }
+        let o = opts(&["-u", "--git-ignore", "dim", "--ignore", "*.tmp"], true);
+        assert_eq!(o.git_ignore, GitIgnoreMode::Dim);
+        assert_eq!(o.ignore_globs, ["*.tmp"]);
+        let o = opts(&["-a"], true);
+        assert!(o.show_hidden && o.ignore_files);
+        assert_eq!(o.git_ignore, GitIgnoreMode::Hide);
+    }
+
+    #[test]
+    fn no_config_ignore_keeps_cli_patterns() {
+        let o = opts(&["--no-config-ignore", "--ignore", "*.tmp"], true);
+        assert_eq!(o.ignore_globs, ["*.tmp"]);
+        assert!(o.ignore_files);
     }
 
     #[test]

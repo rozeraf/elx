@@ -14,9 +14,13 @@ pub struct Cli {
     #[arg(short = 'l', long)]
     pub long: bool,
 
-    /// Show hidden files
-    #[arg(short = 'a', long)]
-    pub all: bool,
+    /// Show hidden files; repeat (-aa) to disable all filtering like -u
+    #[arg(short = 'a', long, action = clap::ArgAction::Count)]
+    pub all: u8,
+
+    /// Disable all filtering: hidden files, .gitignore, ignore files and config ignore patterns
+    #[arg(short = 'u', long)]
+    pub unrestricted: bool,
 
     /// Display output as a tree
     #[arg(short = 'T', long)]
@@ -71,7 +75,11 @@ pub struct Cli {
     #[arg(short = '1', long = "one-per-line")]
     pub one_per_line: bool,
 
-    /// Ignore patterns (glob), e.g., "*.json,node_modules,bin"
+    /// Do not apply ignore patterns from the config file (--ignore still applies)
+    #[arg(long)]
+    pub no_config_ignore: bool,
+
+    /// Ignore patterns (gitignore syntax, later wins, !pattern re-includes), e.g. "*.json,node_modules"
     #[arg(long, value_delimiter = ',')]
     pub ignore: Vec<String>,
 
@@ -141,6 +149,14 @@ pub struct Cli {
 }
 
 impl Cli {
+    pub fn unrestricted(&self) -> bool {
+        self.unrestricted || self.all >= 2
+    }
+
+    pub fn show_hidden(&self) -> bool {
+        self.all > 0 || self.unrestricted()
+    }
+
     pub fn icons_overridden(&self) -> Option<bool> {
         if self.icons {
             Some(true)

@@ -14,7 +14,7 @@ use display::DisplayOptions;
 use display::get_terminal_width;
 use display::grid::{GridEntry, GridOptions, render};
 use display::long::LongView;
-use fs::walker::Walker;
+use fs::walker::{WalkOptions, Walker};
 use sort::{SortOptions, sort_entries};
 use theme::Theme;
 use unicode_width::UnicodeWidthStr;
@@ -79,11 +79,14 @@ fn main() -> Result<()> {
 
     let walker = Walker::new(
         &args.path,
-        args.all,
-        options.git_ignore == config::GitIgnoreMode::Hide,
-        max_depth,
-        options.ignore_globs.clone(),
-        options.collapse_globs.clone(),
+        WalkOptions {
+            show_hidden: options.show_hidden,
+            git_ignore: options.git_ignore,
+            ignore_files: options.ignore_files,
+            max_depth,
+            ignore_globs: options.ignore_globs.clone(),
+            collapse_globs: options.collapse_globs.clone(),
+        },
     );
     let sort_opts = build_sort_options(&config, &args);
     let mut entries = walker.collect()?;
