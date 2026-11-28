@@ -246,6 +246,20 @@ fn subdirectories_and_conflicts_keep_their_status() {
 }
 
 #[test]
+fn directory_with_only_ignored_files_stays_visible() {
+    let repo = Repo::new();
+    repo.write("logs/run.ignored", "x\n");
+    repo.write(".gitignore", "ignored\ncache/\n*.ignored\n");
+    let output = repo.list(&repo.path(), &[]);
+    assert!(output.contains("logs"), "{output}");
+    assert!(
+        !repo
+            .list(&repo.path().join("logs"), &[])
+            .contains("run.ignored")
+    );
+}
+
+#[test]
 fn listing_an_ignored_directory_shows_its_contents() {
     let repo = Repo::new();
     repo.write("cache/deep/file", "ignored\n");

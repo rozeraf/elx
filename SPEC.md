@@ -186,6 +186,8 @@ For each listed directory, entries are dropped in this order:
 2. Gitignored entries, only when `git_ignore = "hide"` and only inside a git repository. An entry
    is gitignored when git status reports it as ignored (`.gitignore`, `.git/info/exclude`, the
    global excludes file), so tracked files that match a pattern stay visible, as in git.
+   A directory is gitignored only when a pattern matches the directory itself, not because
+   everything inside it is ignored (`src/` holding only `*.log` files stays visible).
    When the listed path is itself inside an ignored directory (`elx target`), nothing below it is
    hidden for this reason; entries are still marked `!`.
 3. `.ignore` and `.elxignore` files (unless `-u`).

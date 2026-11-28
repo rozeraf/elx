@@ -65,6 +65,55 @@ fn insert_status(statuses: &mut HashMap<PathBuf, GitStatus>, path: PathBuf, stat
         .or_insert(status);
 }
 
+fn mark_ignored_scopes(
+    repo: &gix::Repository,
+    work_dir: &Path,
+    scope: &[PathBuf],
+    statuses: &mut HashMap<PathBuf, GitStatus>,
+) {
+    use gix::worktree::stack::state::ignore::Source;
+    let Ok(index) = repo.index_or_empty() else {
+        return;
+    };
+    let Ok(mut excludes) = repo.excludes(&index, None, Source::WorktreeThenIdMappingIfNotSkipped)
+    else {
+        return;
+    };
+    for path in scope {
+        let path = status_path(path);
+        let Ok(rel) = path.strip_prefix(work_dir) else {
+            continue;
+        };
+        let mut prefix = PathBuf::new();
+        for component in rel.components() {
+            prefix.push(component);
+            let full = work_dir.join(&prefix);
+            let is_dir = full.is_dir();
+            let rela = gix::path::into_bstr(prefix.as_path());
+            let tracked = if is_dir {
+                let mut dir_prefix = rela.clone().into_owned();
+                dir_prefix.push(b'/');
+                index
+                    .prefixed_entries(dir_prefix.as_ref())
+                    .is_some_and(|entries| !entries.is_empty())
+            } else {
+                index.entry_by_path(rela.as_ref()).is_some()
+            };
+            if tracked {
+                continue;
+            }
+            let mode = is_dir.then_some(gix::index::entry::Mode::DIR);
+            if excludes
+                .at_path(&prefix, mode)
+                .is_ok_and(|platform| platform.is_excluded())
+            {
+                insert_status(statuses, full, GitStatus::Ignored);
+                break;
+            }
+        }
+    }
+}
+
 pub fn get_statuses(
     repo_root: &Path,
     include_ignored: bool,
@@ -87,7 +136,9 @@ pub fn get_statuses(
             options
                 .emit_untracked(gix::dir::walk::EmissionMode::Matching)
                 .emit_ignored(
-                    include_ignored.then_some(gix::dir::walk::EmissionMode::CollapseDirectory),
+                    // Matching, not CollapseDirectory: a directory that only holds ignored files
+                    // is not ignored itself (src/ with just *.log inside stays visible).
+                    include_ignored.then_some(gix::dir::walk::EmissionMode::Matching),
                 )
         }),
         Err(_) => return statuses,
@@ -175,6 +226,12 @@ pub fn get_statuses(
                 Err(_) => continue,
             }
         }
+    }
+
+    // With a pathspec inside an ignored directory, gix emits nothing for it, so check the scope paths
+    // and their parents against the exclude rules directly (untracked ones only, as git does).
+    if include_ignored {
+        mark_ignored_scopes(&repo, &work_dir, scope, &mut statuses);
     }
 
     let mut directories = HashMap::new();
