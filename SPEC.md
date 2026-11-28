@@ -71,7 +71,7 @@ elx [OPTIONS] [PATH]
 | `--only <GLOBS>` | Show only files matching the patterns (gitignore syntax). With `-D`, match directories instead. |
 | `-D`, `--dirs-only` | Show only directories. Symlinks to directories are not directories here (like `find -type d`). |
 | `--files-only` | Show only non-directories. |
-| `--changed` | Show only entries with git status M, A, D or ?, plus the directories leading to them. Deleted files no longer exist on disk, so only their parent directories appear. Outside a git repository a warning is printed on stderr and nothing matches. |
+| `--changed` | Show only entries with git status U, M, A, D or ?, plus the directories leading to them. Deleted files no longer exist on disk, so only their parent directories appear. Outside a git repository a warning is printed on stderr and nothing matches. |
 | `--collapse <GLOBS>` | Tree view: show matching directories without descending into them. Appended to config patterns. |
 | `--no-collapse` | Ignore configured collapse patterns. Conflicts with `--collapse`. |
 
@@ -212,7 +212,7 @@ An entry passes when it satisfies every active filter:
 - type: `-D` → directory, `--files-only` → not a directory;
 - `--only`: files (or directories with `-D`) matching a pattern; without `-D`, directories
   never match `--only` themselves;
-- `--changed`: git status M, A, D or ?.
+- `--changed`: git status U, M, A, D or ?.
 
 A directory whose children were read is kept if it passes itself or if any child is kept, so the
 tree always shows the path to every match; directories left empty are pruned.
@@ -257,7 +257,7 @@ left-aligned.
 
 | Column | Content |
 |---|---|
-| `git` | One character: `M` modified (yellow), `A` added/staged (green), `D` deleted (red), `?` untracked (blue), `!` ignored (grey), blank otherwise. |
+| `git` | One character: `U` unmerged/conflict (red), `M` modified (yellow), `A` added/staged (green), `D` deleted (red), `?` untracked (blue), `!` ignored (grey), blank otherwise. |
 | `permissions` | `symbolic`: `drwxr-xr-x` with type letter `d - l p s c b`, `s/S` for setuid/setgid, `t/T` for sticky. Colors: type blue (dir), grey (file), cyan (other); `r` yellow, `w` red, `x` green, `s/S` magenta, `t/T` cyan. `octal`: `0755` (4 digits including special bits). `both`: symbolic then octal. `none`: empty. |
 | `links` | Hard link count. |
 | `owner`, `group` | Name, or numeric id when unknown. Yellow. |
@@ -307,7 +307,7 @@ Comparison order for two entries:
 
 Keys: `name` (string, case-insensitive by default), `name_natural` (digit runs compared as
 numbers: `v2 < v10`), `extension` (then name), `size`, `modified`, `created`,
-`git_status` (M, A, D, ?, !, clean), `none` (filesystem order).
+`git_status` (U, M, A, D, ?, !, clean), `none` (filesystem order).
 `-t` and `-S` set `reverse` so that the natural "newest/largest first" order comes out;
 `-r` then flips whatever is in effect. In tree view every directory's children are sorted the same
 way. Sorting is stable.
@@ -317,8 +317,10 @@ way. Sorting is stable.
 - The repository is discovered from the listed path upwards (gix). Outside a repository there is no
   git status and `.gitignore` files are not honoured (`.elxignore` is).
 - Statuses: index vs HEAD (`A`, `D`, `M`) and worktree vs index (`M`, `D`), untracked (`?`),
-  ignored (`!`, only computed when needed: `dim`/`show` or the footer). Conflicts show as `M`.
-- Directories get a summary status: `M` if any descendant is modified/added/deleted, otherwise `?`
+  ignored (`!`), conflicts (`U`).
+- Git status is computed only for the listed path (a pathspec), not the whole repository, so
+  `elx some/subdir` stays fast in a large repository.
+- Directories get a summary status: `M` if any descendant is conflicted/modified/added/deleted, otherwise `?`
   if any descendant is untracked. Ignored descendants do not mark the directory.
 - An entry inside an ignored directory is ignored.
 - Paths are matched by canonical absolute path of the parent directory (the final symlink is not

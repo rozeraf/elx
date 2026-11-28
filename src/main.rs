@@ -88,7 +88,8 @@ fn main() -> Result<()> {
         let mut entry = fs::entry::Entry::from_path(args.path.clone())?;
         let status_path = git::status_path(&entry.abs_path);
         if let Some(repo_root) = status_path.parent().and_then(git::find_repo) {
-            let statuses = git::get_statuses(&repo_root, true);
+            let statuses =
+                git::get_statuses(&repo_root, true, std::slice::from_ref(&entry.abs_path));
             entry.git_status = git::status_for_path(&statuses, &entry.abs_path);
         }
         render_entries(vec![entry], &args, &config, &options, &theme);

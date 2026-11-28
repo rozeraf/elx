@@ -17,7 +17,7 @@ While tools like `eza` and `lsd` are excellent, they often come with trade-offs:
 - **Display Modes:** Grid (default), Long (`-l`), and Tree (`-T`).
 - **Tree Mode:** Recursive directory visualization with configurable depth (`--depth`/`-L`, which also turns tree mode on).
 - **Metadata:** Integrated metadata display (permissions, owner, size, date) in both Long and Tree views.
-- **Git Status:** Integrated file status (`M`, `A`, `D`, `?`, `!`) powered by `gix`.
+- **Git Status:** Integrated file status (`U` conflict, `M`, `A`, `D`, `?`, `!`) powered by `gix`, computed only for the listed path.
 - **Terminal Hyperlinks (OSC 8):** Clickable file names in supported terminals with granular control.
 - **Smart Ignoring:** Respects `.gitignore` by default and supports custom glob patterns via `--ignore`.
 - **Rich Visuals:** Nerd Font icons and color-coded output by file type.
@@ -51,7 +51,7 @@ also works for an explicitly listed file and through directory symlinks.
 - **`.elxignore`:** Per-project ignore file with gitignore syntax, read in every directory like `.gitignore`
   (`.ignore` files work too). Unlike `.gitignore`, it is not affected by `git_ignore`.
 - **Narrowing:** `--only <globs>` shows only matching files, `-D`/`--dirs-only` only directories, `--files-only`
-  only non-directories, `--changed` only entries with git changes (`M`, `A`, `D`, `?`; deleted files are no longer
+  only non-directories, `--changed` only entries with git changes (`U`, `M`, `A`, `D`, `?`; deleted files are no longer
   on disk, so only their directories show up). In tree view the directories
   leading to a match stay, empty branches are dropped. `elx -T --changed` gives an overview of what changed in a repo.
 - **Hidden Summary:** In a terminal, a line below the listing tells what was hidden and how to show it, e.g.

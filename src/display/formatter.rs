@@ -242,6 +242,7 @@ impl<'a> ColumnFormatter<'a> {
             }
             Column::Git => {
                 let (symbol, color) = match entry.git_status {
+                    Some(GitStatus::Conflict) => ("U", Color::Red),
                     Some(GitStatus::Modified) => ("M", Color::Yellow),
                     Some(GitStatus::Added) => ("A", Color::Green),
                     Some(GitStatus::Deleted) => ("D", Color::Red),

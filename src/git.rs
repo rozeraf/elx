@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GitStatus {
+    Conflict,
     Modified,
     Added,
     Deleted,
@@ -40,7 +41,12 @@ pub fn status_for_path(statuses: &HashMap<PathBuf, GitStatus>, path: &Path) -> O
     })
 }
 
-pub fn get_statuses(repo_root: &Path, include_ignored: bool) -> HashMap<PathBuf, GitStatus> {
+/// `scope`: absolute paths to report on; git status skips everything else, which matters in big repos.
+pub fn get_statuses(
+    repo_root: &Path,
+    include_ignored: bool,
+    scope: &[PathBuf],
+) -> HashMap<PathBuf, GitStatus> {
     let mut statuses = HashMap::new();
 
     let repo = match ThreadSafeRepository::open(repo_root) {
@@ -64,7 +70,23 @@ pub fn get_statuses(repo_root: &Path, include_ignored: bool) -> HashMap<PathBuf,
         Err(_) => return statuses,
     };
 
-    let results = status_platform.into_iter(Vec::new()).ok();
+    let mut patterns = Vec::new();
+    for path in scope {
+        use std::os::unix::ffi::OsStrExt;
+        match status_path(path).strip_prefix(&work_dir) {
+            Ok(rel) if !rel.as_os_str().is_empty() => {
+                let mut pattern = gix::bstr::BString::from(":(top,literal)");
+                pattern.extend_from_slice(rel.as_os_str().as_bytes());
+                patterns.push(pattern);
+            }
+            // The work tree itself, or a path outside it: no restriction.
+            _ => {
+                patterns.clear();
+                break;
+            }
+        }
+    }
+    let results = status_platform.into_iter(patterns).ok();
 
     if let Some(status_iter) = results {
         for entry in status_iter {
@@ -87,7 +109,7 @@ pub fn get_statuses(repo_root: &Path, include_ignored: bool) -> HashMap<PathBuf,
                                                 _ => Some(GitStatus::Modified),
                                             }
                                         }
-                                        gix::status::plumbing::index_as_worktree::EntryStatus::Conflict(_) => Some(GitStatus::Modified),
+                                        gix::status::plumbing::index_as_worktree::EntryStatus::Conflict(_) => Some(GitStatus::Conflict),
                                         _ => None,
                                     };
                                     if let Some(s) = git_status {

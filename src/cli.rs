@@ -87,7 +87,7 @@ pub struct Cli {
     #[arg(long)]
     pub files_only: bool,
 
-    /// Show only entries with git changes (M, A, D, ?) and the directories containing them.
+    /// Show only entries with git changes (U, M, A, D, ?) and the directories containing them.
     /// Deleted files are gone from disk, so only their directories show up
     #[arg(long)]
     pub changed: bool,

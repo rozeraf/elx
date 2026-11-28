@@ -33,7 +33,8 @@ impl EntryFilter {
             || matches!(
                 entry.git_status,
                 Some(
-                    GitStatus::Modified
+                    GitStatus::Conflict
+                        | GitStatus::Modified
                         | GitStatus::Added
                         | GitStatus::Deleted
                         | GitStatus::Untracked

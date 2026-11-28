@@ -202,6 +202,46 @@ fn tracked_files_matching_gitignore_stay_visible_like_in_git() {
 }
 
 #[test]
+fn subdirectories_and_conflicts_keep_their_status() {
+    let repo = Repo::new();
+    repo.write("new/deep/file", "untracked\n");
+    repo.write("nested/tracked", "after\n");
+    for (path, name, expected) in [
+        ("new/deep", "file", '?'),
+        ("new", "deep", '?'),
+        ("nested", "tracked", 'M'),
+    ] {
+        let output = repo.list(&repo.path().join(path), &[]);
+        assert_eq!(status(&output, name), Some(expected), "{path}: {output}");
+    }
+
+    repo.git(&["checkout", "-qb", "other"]);
+    repo.write("clean/tracked", "other\n");
+    repo.git(&["commit", "-qam", "other"]);
+    repo.git(&["checkout", "-q", "-"]);
+    repo.write("clean/tracked", "main\n");
+    repo.git(&["commit", "-qam", "main"]);
+    let _ = repo
+        .command("git")
+        .current_dir(repo.path())
+        .args([
+            "-c",
+            "user.name=T",
+            "-c",
+            "user.email=t@t.invalid",
+            "merge",
+            "-q",
+            "other",
+        ])
+        .output()
+        .unwrap();
+    let output = repo.list(&repo.path(), &[]);
+    assert_eq!(status(&output, "clean"), Some('M'), "{output}");
+    let output = repo.list(&repo.path().join("clean"), &[]);
+    assert_eq!(status(&output, "tracked"), Some('U'), "{output}");
+}
+
+#[test]
 fn listing_an_ignored_directory_shows_its_contents() {
     let repo = Repo::new();
     repo.write("cache/deep/file", "ignored\n");

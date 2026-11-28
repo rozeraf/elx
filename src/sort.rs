@@ -83,12 +83,13 @@ fn collect_digits<I: Iterator<Item = char>>(iter: &mut std::iter::Peekable<I>) -
 fn git_priority(status: &Option<crate::git::GitStatus>) -> u8 {
     use crate::git::GitStatus;
     match status {
-        Some(GitStatus::Modified) => 0,
-        Some(GitStatus::Added) => 1,
-        Some(GitStatus::Deleted) => 2,
-        Some(GitStatus::Untracked) => 3,
-        Some(GitStatus::Ignored) => 4,
-        None => 5,
+        Some(GitStatus::Conflict) => 0,
+        Some(GitStatus::Modified) => 1,
+        Some(GitStatus::Added) => 2,
+        Some(GitStatus::Deleted) => 3,
+        Some(GitStatus::Untracked) => 4,
+        Some(GitStatus::Ignored) => 5,
+        None => 6,
     }
 }
 

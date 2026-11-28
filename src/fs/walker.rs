@@ -81,7 +81,7 @@ impl Walker {
         // Gitignore is decided by git status rather than by the walker's own .gitignore matching,
         // so tracked files that match a pattern stay visible, as in git.
         let git_statuses = if let Some(repo_root) = find_repo(&abs_root) {
-            get_statuses(&repo_root, true)
+            get_statuses(&repo_root, true, std::slice::from_ref(&abs_root))
         } else {
             HashMap::new()
         };
