@@ -47,7 +47,7 @@ Order matters: later items build on earlier ones.
 
 ## Next
 
-- [ ] `group_dirs` per view: separate setting for long (`-l`) and tree (`-T`), e.g. `group_dirs` in `[long]` and `[tree]`, falling back to `[sort] group_dirs`. `--dirs-first/--dirs-last/--dirs-mixed` still win.
+- [x] `group_dirs` per view: separate setting for long (`-l`) and tree (`-T`), e.g. `group_dirs` in `[long]` and `[tree]`, falling back to `[sort] group_dirs`. `--dirs-first/--dirs-last/--dirs-mixed` still win.
 
 ## Later (from idea.md "not in MVP")
 

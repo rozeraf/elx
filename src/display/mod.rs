@@ -6,7 +6,9 @@ pub mod tree;
 pub use formatter::{Cell, Column, ColumnFormatter};
 
 use crate::cli::Cli;
-use crate::config::{Config, GitIgnoreMode, HyperlinkConfig, ModeOverrides, PermissionsFormat};
+use crate::config::{
+    Config, GitIgnoreMode, GroupDirs, HyperlinkConfig, ModeOverrides, PermissionsFormat,
+};
 use std::io::{IsTerminal, stdout};
 use terminal_size::{Width, terminal_size};
 
@@ -34,6 +36,7 @@ pub struct DisplayOptions {
     pub collapse_globs: Vec<String>,
     pub hidden_summary: bool,
     pub permissions_format: PermissionsFormat,
+    pub group_dirs: GroupDirs,
 }
 
 impl DisplayOptions {
@@ -53,6 +56,12 @@ impl DisplayOptions {
         let long_view = cli.long;
         let mut ignore_globs = config.ignore.clone();
         let mut collapse_globs = config.collapse.clone();
+        let mut group_dirs = config.sort.group_dirs;
+        if cli.long
+            && let Some(g) = config.long.group_dirs
+        {
+            group_dirs = g;
+        }
 
         let active_modes: [(bool, &ModeOverrides); 3] = [
             (cli.show_hidden(), &config.all),
@@ -65,6 +74,7 @@ impl DisplayOptions {
             classify = mode.classify.unwrap_or(classify);
             git_ignore = mode.git_ignore.unwrap_or(git_ignore);
             one_per_line = mode.one_per_line.unwrap_or(one_per_line);
+            group_dirs = mode.group_dirs.unwrap_or(group_dirs);
             if let Some(globs) = &mode.ignore {
                 ignore_globs = globs.clone();
             }
@@ -115,6 +125,14 @@ impl DisplayOptions {
         }
         collapse_globs.extend(cli.collapse.clone());
 
+        if cli.dirs_first {
+            group_dirs = GroupDirs::First;
+        } else if cli.dirs_last {
+            group_dirs = GroupDirs::Last;
+        } else if cli.dirs_mixed {
+            group_dirs = GroupDirs::Mixed;
+        }
+
         let mut permissions_format = config.long.permissions_format;
         if cli.octal {
             permissions_format = PermissionsFormat::Octal;
@@ -135,6 +153,7 @@ impl DisplayOptions {
             collapse_globs,
             hidden_summary: config.show_hidden_summary && is_tty,
             permissions_format,
+            group_dirs,
         }
     }
 }
@@ -275,5 +294,25 @@ mod tests {
         let o = opts(&["-a", "--color", "--ignore", "*.tmp"], true);
         assert!(o.color);
         assert_eq!(o.ignore_globs, ["*.log", "*.tmp"]);
+    }
+
+    #[test]
+    fn group_dirs_per_view() {
+        use crate::config::GroupDirs;
+        let mut cfg = config();
+        cfg.sort.group_dirs = GroupDirs::First;
+        cfg.long.group_dirs = Some(GroupDirs::Mixed);
+        cfg.tree.group_dirs = Some(GroupDirs::Last);
+        let build = |args: &[&str]| {
+            let cli =
+                Cli::try_parse_from(std::iter::once("elx").chain(args.iter().copied())).unwrap();
+            DisplayOptions::build(&cfg, &cli, true).group_dirs
+        };
+        assert_eq!(build(&[]), GroupDirs::First);
+        assert_eq!(build(&["-l"]), GroupDirs::Mixed);
+        assert_eq!(build(&["-T"]), GroupDirs::Last);
+        assert_eq!(build(&["-lT"]), GroupDirs::Last);
+        assert_eq!(build(&["-lT", "--dirs-first"]), GroupDirs::First);
+        assert_eq!(build(&["-l", "--dirs-last"]), GroupDirs::Last);
     }
 }

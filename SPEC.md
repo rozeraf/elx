@@ -146,12 +146,13 @@ directory → symlink → executable (any x bit) → other file.
 | `headers` | `true` | Underlined header row (`Git Mode Link User Group Size Date Name`). |
 | `autohide_columns` | `true` | Drop columns that are empty for every shown entry (in practice the git column outside a repo or with no changes). |
 | `permissions_format` | `"symbolic"` | `symbolic`, `octal`, `both`, `none`. |
+| `group_dirs` | unset | Directory grouping in long view (`first`, `last`, `mixed`); unset uses `[sort] group_dirs`. |
 
 `[sort]`: `by` (`name`), `secondary_by` (unset), `ignore_case` (true), `reverse` (false),
 `group_dirs` (`first` / `last` / `mixed`, default `first`), `dotfiles_first` (false).
 
 `[all]`, `[tree]`, `[when_not_tty]`: mode sections, all keys optional:
-`icons`, `color`, `classify`, `git_ignore`, `ignore`, `collapse`, `one_per_line`.
+`icons`, `color`, `classify`, `git_ignore`, `ignore`, `collapse`, `one_per_line`, `group_dirs`.
 Lists replace the global list rather than extending it.
 `[when_not_tty]` defaults to `icons = false`, `color = false`, `one_per_line = true` when the
 section is absent. Hyperlinks are always disabled when stdout is not a terminal.
@@ -292,7 +293,9 @@ left-aligned.
 Comparison order for two entries:
 
 1. Directory grouping (`group_dirs`). Symlinks to directories count as directories.
-   Never affected by `reverse`.
+   Never affected by `reverse`. Resolved as `[sort] group_dirs` → `[long] group_dirs` (with `-l`)
+   → mode sections (`[all]`, `[tree]`, `[when_not_tty]`) → `--dirs-first/--dirs-last/--dirs-mixed`.
+   So for `-lT` a `[tree]` value wins over `[long]`.
 2. `dotfiles_first`. Never affected by `reverse`.
 3. Primary key, reversed when `reverse` is on.
 4. `secondary_by` key, if set, also reversed.

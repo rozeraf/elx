@@ -74,7 +74,11 @@ fn main() -> Result<()> {
     if args.print_config {
         print!(
             "{}",
-            effective_config(&options, &build_sort_options(&config, &args), &args)
+            effective_config(
+                &options,
+                &build_sort_options(&config, &args, &options),
+                &args
+            )
         );
         return Ok(());
     }
@@ -110,7 +114,7 @@ fn main() -> Result<()> {
             count_hidden: options.hidden_summary,
         },
     );
-    let sort_opts = build_sort_options(&config, &args);
+    let sort_opts = build_sort_options(&config, &args, &options);
     if args.changed && git::find_repo(&args.path).is_none() {
         eprintln!(
             "elx: --changed: {} is not inside a git repository",
@@ -247,9 +251,7 @@ fn hidden_summary(hidden: &HiddenCounts) -> Option<String> {
     (!parts.is_empty()).then(|| format!("{} hidden: {}", hidden.total(), parts.join(", ")))
 }
 
-fn build_sort_options(config: &Config, cli: &Cli) -> SortOptions {
-    use crate::config::GroupDirs;
-
+fn build_sort_options(config: &Config, cli: &Cli, options: &DisplayOptions) -> SortOptions {
     let mut opts = SortOptions::from(&config.sort);
 
     let (cli_key, shorthand_forces_reverse) = cli.resolve_sort_key();
@@ -264,13 +266,7 @@ fn build_sort_options(config: &Config, cli: &Cli) -> SortOptions {
         opts.reverse = !opts.reverse;
     }
 
-    if cli.dirs_first {
-        opts.group_dirs = GroupDirs::First;
-    } else if cli.dirs_last {
-        opts.group_dirs = GroupDirs::Last;
-    } else if cli.dirs_mixed {
-        opts.group_dirs = GroupDirs::Mixed;
-    }
+    opts.group_dirs = options.group_dirs;
 
     if cli.dotfiles_first {
         opts.dotfiles_first = true;
@@ -379,7 +375,8 @@ mod tests {
         let cli = Cli::try_parse_from(std::iter::once("elx").chain(args.iter().copied())).unwrap();
         let mut config = Config::default();
         config.sort.reverse = config_reverse;
-        build_sort_options(&config, &cli).reverse
+        let options = crate::display::DisplayOptions::new(&config, &cli);
+        build_sort_options(&config, &cli, &options).reverse
     }
 
     #[test]

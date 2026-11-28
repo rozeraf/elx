@@ -210,6 +210,9 @@ pub struct LongConfig {
     pub autohide_columns: bool,
     #[serde(default)]
     pub permissions_format: PermissionsFormat,
+    /// Replaces `[sort] group_dirs` in long view; `[tree] group_dirs` wins for `-lT`.
+    #[serde(default)]
+    pub group_dirs: Option<GroupDirs>,
 }
 
 impl Default for LongConfig {
@@ -219,6 +222,7 @@ impl Default for LongConfig {
             headers: true,
             autohide_columns: true,
             permissions_format: PermissionsFormat::Symbolic,
+            group_dirs: None,
         }
     }
 }
@@ -248,6 +252,7 @@ pub struct ModeOverrides {
     pub ignore: Option<Vec<String>>,
     pub collapse: Option<Vec<String>>,
     pub one_per_line: Option<bool>,
+    pub group_dirs: Option<GroupDirs>,
 }
 
 fn default_when_not_tty() -> ModeOverrides {
@@ -328,6 +333,9 @@ headers = true
 # Automatically hide columns that are empty for all shown entries (e.g., Git column if no changes)
 autohide_columns = true
 
+# Directory grouping in long view (first, last, mixed); unset uses [sort] group_dirs
+# group_dirs = "mixed"
+
 # Permissions display format: symbolic (drwxr-sr-x), octal (4755), both (drwxr-sr-x 4755), none
 permissions_format = "symbolic"
 
@@ -366,7 +374,7 @@ dotfiles_first = false
 
 # Per-mode overrides: keys set here replace the values above while the mode is active.
 # Applied in order: [all] (-a), [tree] (-T), [when_not_tty] (output is not a terminal), then CLI flags.
-# Supported keys: icons, color, classify, git_ignore, ignore, collapse, one_per_line.
+# Supported keys: icons, color, classify, git_ignore, ignore, collapse, one_per_line, group_dirs.
 # Lists (ignore, collapse) replace the global list.
 [all]
 # classify = true
@@ -374,6 +382,7 @@ dotfiles_first = false
 [tree]
 # git_ignore = "dim"
 # collapse = ["target", "node_modules", ".git"]
+# group_dirs = "first"
 
 [when_not_tty]
 # Output redirected to a file or pipe. Hyperlinks are always disabled here.
