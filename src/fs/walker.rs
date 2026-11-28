@@ -15,6 +15,22 @@ pub struct WalkOptions {
     pub max_depth: usize,
     pub ignore_globs: Vec<String>,
     pub collapse_globs: Vec<String>,
+    /// Count entries the walk skipped (costs one extra `read_dir` per directory).
+    pub count_hidden: bool,
+}
+
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct HiddenCounts {
+    pub dotfiles: usize,
+    pub gitignored: usize,
+    /// Config/CLI patterns, `.elxignore` and `.ignore` files.
+    pub pattern: usize,
+}
+
+impl HiddenCounts {
+    pub fn total(&self) -> usize {
+        self.dotfiles + self.gitignored + self.pattern
+    }
 }
 
 pub struct Walker {
@@ -44,10 +60,13 @@ impl Walker {
         }
     }
 
-    pub fn collect(&self) -> Result<Vec<Entry>> {
+    pub fn collect(&self) -> Result<(Vec<Entry>, HiddenCounts)> {
         let abs_root = self.path.canonicalize().unwrap_or(self.path.clone());
         let git_statuses = if let Some(repo_root) = find_repo(&abs_root) {
-            get_statuses(&repo_root, self.opts.git_ignore != GitIgnoreMode::Hide)
+            // Ignored statuses also tell gitignored entries apart when counting hidden ones.
+            let include_ignored =
+                self.opts.git_ignore != GitIgnoreMode::Hide || self.opts.count_hidden;
+            get_statuses(&repo_root, include_ignored)
         } else {
             HashMap::new()
         };
@@ -57,7 +76,37 @@ impl Walker {
             collapse: build_matcher(&self.path, &self.opts.collapse_globs)?,
         };
 
-        self.collect_at(&self.path, 1, &git_statuses, &matchers)
+        let mut hidden = HiddenCounts::default();
+        let entries = self.collect_at(&self.path, 1, &git_statuses, &matchers, &mut hidden)?;
+        Ok((entries, hidden))
+    }
+
+    fn count_hidden(
+        &self,
+        path: &Path,
+        shown: &[Entry],
+        git_statuses: &HashMap<PathBuf, GitStatus>,
+        hidden: &mut HiddenCounts,
+    ) {
+        let Ok(dir) = std::fs::read_dir(path) else {
+            return;
+        };
+        for dirent in dir.flatten() {
+            let name = dirent.file_name();
+            if shown
+                .iter()
+                .any(|e| e.path.file_name() == Some(name.as_os_str()))
+            {
+                continue;
+            }
+            if !self.opts.show_hidden && name.as_encoded_bytes().starts_with(b".") {
+                hidden.dotfiles += 1;
+            } else if status_for_path(git_statuses, &dirent.path()) == Some(GitStatus::Ignored) {
+                hidden.gitignored += 1;
+            } else {
+                hidden.pattern += 1;
+            }
+        }
     }
 
     fn collect_at(
@@ -66,6 +115,7 @@ impl Walker {
         current_depth: usize,
         git_statuses: &HashMap<PathBuf, GitStatus>,
         matchers: &Matchers,
+        hidden: &mut HiddenCounts,
     ) -> Result<Vec<Entry>> {
         let mut entries = Vec::new();
 
@@ -107,12 +157,87 @@ impl Walker {
                         current_depth + 1,
                         git_statuses,
                         matchers,
+                        hidden,
                     )?);
                 }
             }
             entries.push(entry);
         }
 
+        if self.opts.count_hidden {
+            self.count_hidden(path, &entries, git_statuses, hidden);
+        }
         Ok(entries)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{HiddenCounts, WalkOptions, Walker};
+    use crate::config::GitIgnoreMode;
+    use std::process::Command;
+
+    fn walk(root: &std::path::Path, git_ignore: GitIgnoreMode, show_hidden: bool) -> HiddenCounts {
+        let walker = Walker::new(
+            root,
+            WalkOptions {
+                show_hidden,
+                git_ignore,
+                ignore_files: true,
+                max_depth: usize::MAX,
+                ignore_globs: vec!["*.log".into()],
+                collapse_globs: vec!["collapsed".into()],
+                count_hidden: true,
+            },
+        );
+        walker.collect().unwrap().1
+    }
+
+    #[test]
+    fn counts_hidden_entries_by_reason_across_the_tree() {
+        let root = std::env::temp_dir().join(format!("elx-walker-test-{}", std::process::id()));
+        for (file, content) in [
+            (".gitignore", "built\n"),
+            (".elxignore", "secret\n"),
+            ("built", ""),
+            ("a.log", ""),
+            ("secret", ""),
+            ("visible", ""),
+            ("sub/.hidden", ""),
+            ("sub/b.log", ""),
+            ("collapsed/.x", ""),
+            ("collapsed/c.log", ""),
+        ] {
+            let path = root.join(file);
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(path, content).unwrap();
+        }
+        let status = Command::new("git")
+            .args(["init", "-q"])
+            .current_dir(&root)
+            .env("GIT_CONFIG_GLOBAL", "/dev/null")
+            .env("GIT_CONFIG_NOSYSTEM", "1")
+            .status()
+            .unwrap();
+        assert!(status.success());
+
+        let hide = walk(&root, GitIgnoreMode::Hide, false);
+        let dim = walk(&root, GitIgnoreMode::Dim, false);
+        let all = walk(&root, GitIgnoreMode::Hide, true);
+        std::fs::remove_dir_all(&root).unwrap();
+
+        // Dotfiles: .git, .gitignore, .elxignore, sub/.hidden. Collapsed dirs are not read.
+        assert_eq!(
+            hide,
+            HiddenCounts {
+                dotfiles: 4,
+                gitignored: 1,
+                pattern: 3,
+            }
+        );
+        assert_eq!(dim.gitignored, 0);
+        assert_eq!(all.dotfiles, 0);
+        // .git is not gitignored, so with -a it only stays hidden if a pattern matches; it does not.
+        assert_eq!(all.gitignored, 1);
     }
 }

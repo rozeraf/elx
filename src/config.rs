@@ -109,6 +109,8 @@ pub struct Config {
     pub ignore: Vec<String>,
     #[serde(default)]
     pub collapse: Vec<String>,
+    #[serde(default = "default_true")]
+    pub show_hidden_summary: bool,
     #[serde(default)]
     pub classify: bool,
     #[serde(default)]
@@ -134,6 +136,7 @@ impl Default for Config {
             git_ignore: GitIgnoreMode::Hide,
             ignore: Vec::new(),
             collapse: Vec::new(),
+            show_hidden_summary: true,
             classify: false,
             depth: None,
             long: LongConfig::default(),
@@ -298,6 +301,9 @@ classify = false
 # Directories shown in tree view without descending into them (gitignore-style patterns)
 # Example: collapse = ["target", "node_modules", ".git"]
 collapse = []
+
+# Print how many entries were hidden and why below the listing (terminal output only)
+show_hidden_summary = true
 
 # Default recursion depth for tree view (uncomment to set)
 # depth = 3

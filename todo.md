@@ -26,10 +26,10 @@ Order matters: later items build on earlier ones.
   - Note: `-T` with `dim` and no `--depth` walks into ignored dirs like `target/`; tree collapse fixes that.
 - [x] **Tree collapse** [2]: `collapse` (gitignore-style patterns) in config and modes, `--collapse`, `--no-collapse`; rendered as `name …`.
   - [ ] Optional: entry count in the marker (`target … 1234`); needs a `read_dir` per collapsed dir.
-- [ ] **Hidden summary footer** [3]
-  - [ ] Walker counts skipped entries by reason (hidden / gitignored / pattern).
-  - [ ] Footer `N hidden (…) — use -a / -G to show`, TTY only.
-  - [ ] `show_hidden_summary = false` to disable.
+- [x] **Hidden summary footer** [3]
+  - [x] Walker counts skipped entries by reason (hidden / gitignored / pattern).
+  - [x] Footer `N hidden (…) — use -a / -G to show`, TTY only.
+  - [x] `show_hidden_summary = false` to disable.
 - [x] **Show everything / disable config ignore** [4]
   - [x] `--no-config-ignore`.
   - [x] `-aa` (`ArgAction::Count`) or `-u`: hidden + gitignore + config patterns off. Check `--all` still works.

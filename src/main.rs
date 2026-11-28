@@ -15,7 +15,7 @@ use display::get_terminal_width;
 use display::grid::{GridEntry, GridOptions, render};
 use display::long::LongView;
 use fs::filter::EntryFilter;
-use fs::walker::{WalkOptions, Walker};
+use fs::walker::{HiddenCounts, WalkOptions, Walker};
 use sort::{SortOptions, sort_entries};
 use theme::Theme;
 use unicode_width::UnicodeWidthStr;
@@ -87,6 +87,7 @@ fn main() -> Result<()> {
             max_depth,
             ignore_globs: options.ignore_globs.clone(),
             collapse_globs: options.collapse_globs.clone(),
+            count_hidden: options.hidden_summary,
         },
     );
     let sort_opts = build_sort_options(&config, &args);
@@ -106,12 +107,36 @@ fn main() -> Result<()> {
         dirs_only: args.dirs_only,
         files_only: args.files_only,
     };
-    let mut entries = filter.apply(walker.collect()?);
+    let (entries, hidden) = walker.collect()?;
+    let mut entries = filter.apply(entries);
     sort_entries(&mut entries, &sort_opts);
 
     render_entries(entries, &args, &config, &options, &theme);
+    if options.hidden_summary
+        && let Some(summary) = hidden_summary(&hidden)
+    {
+        if options.color {
+            use crossterm::style::{Color, Stylize};
+            println!("{}", summary.with(Color::DarkGrey));
+        } else {
+            println!("{summary}");
+        }
+    }
 
     Ok(())
+}
+
+fn hidden_summary(hidden: &HiddenCounts) -> Option<String> {
+    let parts: Vec<String> = [
+        (hidden.dotfiles, "dotfiles", "-a"),
+        (hidden.gitignored, "gitignored", "-G"),
+        (hidden.pattern, "by pattern", "-u"),
+    ]
+    .into_iter()
+    .filter(|(count, _, _)| *count > 0)
+    .map(|(count, what, flag)| format!("{count} {what} ({flag})"))
+    .collect();
+    (!parts.is_empty()).then(|| format!("{} hidden: {}", hidden.total(), parts.join(", ")))
 }
 
 fn build_sort_options(config: &Config, cli: &Cli) -> SortOptions {
@@ -247,6 +272,21 @@ mod tests {
         let mut config = Config::default();
         config.sort.reverse = config_reverse;
         build_sort_options(&config, &cli).reverse
+    }
+
+    #[test]
+    fn hidden_summary_lists_only_nonzero_reasons() {
+        use super::{HiddenCounts, hidden_summary};
+        assert_eq!(hidden_summary(&HiddenCounts::default()), None);
+        let counts = HiddenCounts {
+            dotfiles: 3,
+            gitignored: 0,
+            pattern: 2,
+        };
+        assert_eq!(
+            hidden_summary(&counts).as_deref(),
+            Some("5 hidden: 3 dotfiles (-a), 2 by pattern (-u)")
+        );
     }
 
     #[test]

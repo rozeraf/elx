@@ -32,6 +32,7 @@ pub struct DisplayOptions {
     pub depth: Option<usize>,
     pub ignore_globs: Vec<String>,
     pub collapse_globs: Vec<String>,
+    pub hidden_summary: bool,
     pub permissions_format: PermissionsFormat,
 }
 
@@ -132,6 +133,7 @@ impl DisplayOptions {
             depth,
             ignore_globs,
             collapse_globs,
+            hidden_summary: config.show_hidden_summary && is_tty,
             permissions_format,
         }
     }
