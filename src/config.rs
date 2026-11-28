@@ -107,6 +107,8 @@ pub struct Config {
     #[serde(default)]
     pub ignore: Vec<String>,
     #[serde(default)]
+    pub collapse: Vec<String>,
+    #[serde(default)]
     pub classify: bool,
     #[serde(default)]
     pub depth: Option<usize>,
@@ -130,6 +132,7 @@ impl Default for Config {
             hyperlinks: HyperlinkConfig::default(),
             git_ignore: GitIgnoreMode::Hide,
             ignore: Vec::new(),
+            collapse: Vec::new(),
             classify: false,
             depth: None,
             long: LongConfig::default(),
@@ -224,8 +227,8 @@ fn default_columns() -> Vec<Column> {
     ]
 }
 
-/// Keys left unset inherit the base value. `ignore` replaces the base list instead of extending it,
-/// so a mode can drop a pattern.
+/// Keys left unset inherit the base value. Lists (`ignore`, `collapse`) replace the base list
+/// instead of extending it, so a mode can drop a pattern.
 #[derive(Deserialize, Serialize, Debug, Default)]
 #[serde(deny_unknown_fields)]
 pub struct ModeOverrides {
@@ -234,6 +237,7 @@ pub struct ModeOverrides {
     pub classify: Option<bool>,
     pub git_ignore: Option<GitIgnoreMode>,
     pub ignore: Option<Vec<String>>,
+    pub collapse: Option<Vec<String>>,
     pub one_per_line: Option<bool>,
 }
 
@@ -288,6 +292,10 @@ ignore = []
 
 # Append indicator (one of /) to directories
 classify = false
+
+# Directories shown in tree view without descending into them (gitignore-style patterns)
+# Example: collapse = ["target", "node_modules", ".git"]
+collapse = []
 
 # Default recursion depth for tree view (uncomment to set)
 # depth = 3
@@ -346,13 +354,14 @@ dotfiles_first = false
 
 # Per-mode overrides: keys set here replace the values above while the mode is active.
 # Applied in order: [all] (-a), [tree] (-T), [when_not_tty] (output is not a terminal), then CLI flags.
-# Supported keys: icons, color, classify, git_ignore, ignore (replaces the global list), one_per_line.
+# Supported keys: icons, color, classify, git_ignore, ignore, collapse, one_per_line.
+# Lists (ignore, collapse) replace the global list.
 [all]
 # classify = true
 
 [tree]
 # git_ignore = "dim"
-# ignore = ["target", "node_modules"]
+# collapse = ["target", "node_modules", ".git"]
 
 [when_not_tty]
 # Output redirected to a file or pipe. Hyperlinks are always disabled here.

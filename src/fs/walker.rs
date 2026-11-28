@@ -2,6 +2,7 @@ use crate::fs::entry::Entry;
 use crate::git::{GitStatus, find_repo, get_statuses, status_for_path};
 use anyhow::Result;
 use ignore::WalkBuilder;
+use ignore::gitignore::{Gitignore, GitignoreBuilder};
 use ignore::overrides::OverrideBuilder;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -12,6 +13,7 @@ pub struct Walker {
     use_git_ignore: bool,
     max_depth: usize,
     ignore_globs: Vec<String>,
+    collapse_globs: Vec<String>,
 }
 
 impl Walker {
@@ -21,6 +23,7 @@ impl Walker {
         use_git_ignore: bool,
         max_depth: usize,
         ignore_globs: Vec<String>,
+        collapse_globs: Vec<String>,
     ) -> Self {
         Self {
             path: path.to_path_buf(),
@@ -28,6 +31,7 @@ impl Walker {
             use_git_ignore,
             max_depth,
             ignore_globs,
+            collapse_globs,
         }
     }
 
@@ -39,7 +43,13 @@ impl Walker {
             HashMap::new()
         };
 
-        self.collect_at(&self.path, 1, &git_statuses)
+        let mut collapse = GitignoreBuilder::new(&self.path);
+        for glob in &self.collapse_globs {
+            collapse.add_line(None, glob)?;
+        }
+        let collapse = collapse.build()?;
+
+        self.collect_at(&self.path, 1, &git_statuses, &collapse)
     }
 
     fn collect_at(
@@ -47,6 +57,7 @@ impl Walker {
         path: &Path,
         current_depth: usize,
         git_statuses: &HashMap<PathBuf, GitStatus>,
+        collapse: &Gitignore,
     ) -> Result<Vec<Entry>> {
         let mut entries = Vec::new();
 
@@ -75,8 +86,16 @@ impl Walker {
             entry.git_status = status_for_path(git_statuses, &entry.abs_path);
 
             if entry.metadata.is_dir() && current_depth < self.max_depth {
-                entry.children =
-                    Some(self.collect_at(&entry_path, current_depth + 1, git_statuses)?);
+                if collapse.matched(&entry_path, true).is_ignore() {
+                    entry.collapsed = true;
+                } else {
+                    entry.children = Some(self.collect_at(
+                        &entry_path,
+                        current_depth + 1,
+                        git_statuses,
+                        collapse,
+                    )?);
+                }
             }
             entries.push(entry);
         }

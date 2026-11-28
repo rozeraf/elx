@@ -65,6 +65,14 @@ pub struct Cli {
     #[arg(long, value_delimiter = ',')]
     pub ignore: Vec<String>,
 
+    /// Show these directories in tree view without descending into them (glob), e.g. "target,node_modules"
+    #[arg(long, value_delimiter = ',', conflicts_with = "no_collapse")]
+    pub collapse: Vec<String>,
+
+    /// Expand every directory in tree view, ignoring configured collapse patterns
+    #[arg(long)]
+    pub no_collapse: bool,
+
     /// Show permissions in octal format (e.g. 4755). Overrides config.
     #[arg(long, short = 'o')]
     pub octal: bool,

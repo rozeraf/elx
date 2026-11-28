@@ -42,6 +42,8 @@ also works for an explicitly listed file and through directory symlinks.
   ```bash
   elx --ignore "*.json,node_modules,target"
   ```
+- **Tree Collapse:** In tree view, directories matching `collapse` patterns (gitignore syntax) are shown as
+  `name …` without listing their contents. `--collapse <globs>` adds patterns, `--no-collapse` expands everything.
 - **Persistent Ignore:** Patterns can also be defined in your `config.toml`:
   ```toml
   ignore = ["*.tmp", ".cache", "bin"]
@@ -60,8 +62,8 @@ The config file is located at `~/.config/elx/config.toml`.
 ### Per-mode overrides
 
 Sections `[all]` (active with `-a`), `[tree]` (active with `-T`) and `[when_not_tty]` (output redirected to a file or pipe) override top-level keys while the mode is on.
-Unset keys inherit the top-level value; `ignore` replaces the global list instead of extending it.
-Supported keys: `icons`, `color`, `classify`, `git_ignore`, `ignore`, `one_per_line`.
+Unset keys inherit the top-level value; lists (`ignore`, `collapse`) replace the global list instead of extending it.
+Supported keys: `icons`, `color`, `classify`, `git_ignore`, `ignore`, `collapse`, `one_per_line`.
 Without a `[when_not_tty]` section, redirected output has no icons, no colors and one entry per line; hyperlinks are always off there.
 
 ```toml
@@ -73,7 +75,7 @@ color = false
 
 [tree]
 git_ignore = "dim"
-ignore = ["node_modules"]
+collapse = ["target", "node_modules", ".git"]
 ```
 
 Order: top-level → `[all]` → `[tree]` → `[when_not_tty]` → CLI flags (CLI always wins).

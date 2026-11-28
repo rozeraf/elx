@@ -29,6 +29,7 @@ pub struct DisplayOptions {
     pub long_view: bool,
     pub depth: Option<usize>,
     pub ignore_globs: Vec<String>,
+    pub collapse_globs: Vec<String>,
     pub permissions_format: PermissionsFormat,
 }
 
@@ -48,6 +49,7 @@ impl DisplayOptions {
         let mut one_per_line = false;
         let long_view = cli.long;
         let mut ignore_globs = config.ignore.clone();
+        let mut collapse_globs = config.collapse.clone();
 
         let active_modes: [(bool, &ModeOverrides); 3] = [
             (cli.all, &config.all),
@@ -62,6 +64,9 @@ impl DisplayOptions {
             one_per_line = mode.one_per_line.unwrap_or(one_per_line);
             if let Some(globs) = &mode.ignore {
                 ignore_globs = globs.clone();
+            }
+            if let Some(globs) = &mode.collapse {
+                collapse_globs = globs.clone();
             }
         }
 
@@ -94,6 +99,10 @@ impl DisplayOptions {
         if !cli.ignore.is_empty() {
             ignore_globs.extend(cli.ignore.clone());
         }
+        if cli.no_collapse {
+            collapse_globs.clear();
+        }
+        collapse_globs.extend(cli.collapse.clone());
 
         let mut permissions_format = config.long.permissions_format;
         if cli.octal {
@@ -110,6 +119,7 @@ impl DisplayOptions {
             long_view,
             depth,
             ignore_globs,
+            collapse_globs,
             permissions_format,
         }
     }
@@ -204,6 +214,22 @@ mod tests {
     #[test]
     fn no_git_ignore_flag_overrides_dim() {
         assert_eq!(opts(&["-T", "-G"], true).git_ignore, GitIgnoreMode::Show);
+    }
+
+    #[test]
+    fn collapse_follows_modes_and_cli() {
+        let mut cfg = config();
+        cfg.collapse = vec![".git".into()];
+        cfg.tree.collapse = Some(vec!["target".into()]);
+        let build = |args: &[&str]| {
+            let cli =
+                Cli::try_parse_from(std::iter::once("elx").chain(args.iter().copied())).unwrap();
+            DisplayOptions::build(&cfg, &cli, true).collapse_globs
+        };
+        assert_eq!(build(&[]), [".git"]);
+        assert_eq!(build(&["-T"]), ["target"]);
+        assert_eq!(build(&["-T", "--collapse", "dist"]), ["target", "dist"]);
+        assert!(build(&["-T", "--no-collapse"]).is_empty());
     }
 
     #[test]

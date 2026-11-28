@@ -15,6 +15,8 @@ Order matters: later items build on earlier ones.
 - [x] Optional: restore distinct colors for setuid/setgid (magenta) and sticky (cyan) in `format_permissions_colored` (lost in the v0.1.2 merge; now same green as `x`).
 - [ ] User side: remove `schema_version` from `~/.config/elx/config.toml` (field was dropped in `8c48690`).
 
+- [ ] `elx | head` panics with "failed printing to stdout: Broken pipe". Exit quietly on `BrokenPipe` instead (output goes through `println!`/`print!` in all views).
+
 ## Filtering
 
 - [x] **Per-mode overrides `[all]` / `[tree]`** [0]: `ModeOverrides` with `icons`, `color`, `classify`, `git_ignore`, `ignore` (replaces). `collapse` gets added with tree collapse.
@@ -22,11 +24,8 @@ Order matters: later items build on earlier ones.
 - [x] **`git_ignore = "hide" | "dim" | "show"`** [1]: old booleans still accepted; `-G` = `show`; dim = `DarkGrey` name, only with colors on.
   - [ ] Optional: `--git-ignore=<mode>` CLI flag (now only via config / `[all]` / `[tree]`).
   - Note: `-T` with `dim` and no `--depth` walks into ignored dirs like `target/`; tree collapse fixes that.
-- [ ] **Tree collapse** [2]
-  - [ ] `collapse: Vec<String>` (globs) in config + `[tree]`.
-  - [ ] `walker.rs`: matching dir → no `children`, mark collapsed.
-  - [ ] Tree renders `name/ …` (optionally entry count).
-  - [ ] `--collapse <globs>`, `--no-collapse`.
+- [x] **Tree collapse** [2]: `collapse` (gitignore-style patterns) in config and modes, `--collapse`, `--no-collapse`; rendered as `name …`.
+  - [ ] Optional: entry count in the marker (`target … 1234`); needs a `read_dir` per collapsed dir.
 - [ ] **Hidden summary footer** [3]
   - [ ] Walker counts skipped entries by reason (hidden / gitignored / pattern).
   - [ ] Footer `N hidden (…) — use -a / -G to show`, TTY only.

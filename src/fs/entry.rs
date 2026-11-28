@@ -12,6 +12,8 @@ pub struct Entry {
     pub link_target: Option<PathBuf>,
     pub children: Option<Vec<Entry>>,
     pub git_status: Option<GitStatus>,
+    /// Directory matched a collapse pattern, so its children were not read.
+    pub collapsed: bool,
 }
 
 impl Entry {
@@ -39,6 +41,7 @@ impl Entry {
             link_target,
             children: None,
             git_status: None,
+            collapsed: false,
         })
     }
 }

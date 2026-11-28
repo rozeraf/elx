@@ -209,9 +209,17 @@ impl<'a> TreeView<'a> {
         let branch = if is_last { LAST_BRANCH } else { BRANCH };
 
         let name = formatter.format_column(Column::Name, entry);
+        let collapsed = match (entry.collapsed, self.options.color) {
+            (false, _) => String::new(),
+            (true, false) => " …".to_string(),
+            (true, true) => {
+                use crossterm::style::{Color, Stylize};
+                format!(" {}", "…".with(Color::DarkGrey))
+            }
+        };
         println!(
-            "{}{}{}{} {}",
-            prefix, branch, HORIZONTAL, HORIZONTAL, name.content
+            "{}{}{}{} {}{}",
+            prefix, branch, HORIZONTAL, HORIZONTAL, name.content, collapsed
         );
 
         if let Some(children) = &entry.children {

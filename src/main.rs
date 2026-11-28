@@ -77,6 +77,7 @@ fn main() -> Result<()> {
         options.git_ignore == config::GitIgnoreMode::Hide,
         max_depth,
         options.ignore_globs.clone(),
+        options.collapse_globs.clone(),
     );
     let sort_opts = build_sort_options(&config, &args);
     let mut entries = walker.collect()?;
