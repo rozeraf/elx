@@ -260,7 +260,7 @@ left-aligned.
 | `links` | Hard link count. |
 | `owner`, `group` | Name, or numeric id when unknown. Yellow. |
 | `size` | Bytes `n B` below 1024, otherwise one decimal with `K M G T` (1024-based). Green. |
-| `date` | Modification time, local, `%b %d %H:%M` (e.g. `Nov 28 20:42`). Cyan. |
+| `date` | Modification time, local: `%b %d %H:%M` (e.g. `Nov 28 20:42`), or `%b %d  %Y` (e.g. `Mar 14  2019`) when older than six months or in the future, like `ls`. Cyan. |
 | `name` | Icon, colored name, classify suffix, ` -> target` for symlinks (target cyan, not resolved). |
 
 ### 6.3 Tree

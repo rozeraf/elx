@@ -231,7 +231,7 @@ impl<'a> ColumnFormatter<'a> {
                     .modified()
                     .map(|t| t.into())
                     .unwrap_or_else(|_| Local::now());
-                let date_str = modified.format("%b %d %H:%M").to_string();
+                let date_str = format_date(modified, Local::now());
                 let width = date_str.len();
                 let content = if !self.options.color {
                     date_str
@@ -375,6 +375,16 @@ fn format_permissions_colored(mode: u32) -> String {
         .collect()
 }
 
+/// Like ls: entries older than six months or from the future show the year instead of the time.
+fn format_date(time: DateTime<Local>, now: DateTime<Local>) -> String {
+    let six_months = chrono::Duration::seconds(31_556_952 / 2);
+    if time > now || now - time > six_months {
+        time.format("%b %d  %Y").to_string()
+    } else {
+        time.format("%b %d %H:%M").to_string()
+    }
+}
+
 fn format_permissions_octal(mode: u32) -> String {
     format!("{:04o}", mode & 0o7777)
 }
@@ -398,6 +408,17 @@ fn format_size(size: u64) -> String {
 mod tests {
     use super::{escape_terminal_text, file_uri};
     use std::path::Path;
+
+    #[test]
+    fn old_and_future_dates_show_the_year() {
+        use chrono::{Local, TimeZone};
+        let now = Local.with_ymd_and_hms(2026, 11, 28, 12, 0, 0).unwrap();
+        let at = |y, m, d| Local.with_ymd_and_hms(y, m, d, 9, 5, 0).unwrap();
+        assert_eq!(super::format_date(at(2026, 11, 1), now), "Nov 01 09:05");
+        assert_eq!(super::format_date(at(2026, 6, 15), now), "Jun 15 09:05");
+        assert_eq!(super::format_date(at(2019, 3, 14), now), "Mar 14  2019");
+        assert_eq!(super::format_date(at(2026, 12, 1), now), "Dec 01  2026");
+    }
 
     #[test]
     fn file_uri_percent_encodes_unsafe_bytes() {
