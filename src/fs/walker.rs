@@ -28,7 +28,7 @@ struct Matchers {
 }
 
 /// Gitignore semantics: patterns are relative to `root`, later lines win, `!pattern` re-includes.
-fn build_matcher(root: &Path, globs: &[String]) -> Result<Gitignore> {
+pub fn build_matcher(root: &Path, globs: &[String]) -> Result<Gitignore> {
     let mut builder = GitignoreBuilder::new(root);
     for glob in globs {
         builder.add_line(None, glob)?;

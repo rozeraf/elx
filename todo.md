@@ -33,8 +33,8 @@ Order matters: later items build on earlier ones.
 - [x] **Show everything / disable config ignore** [4]
   - [x] `--no-config-ignore`.
   - [x] `-aa` (`ArgAction::Count`) or `-u`: hidden + gitignore + config patterns off. Check `--all` still works.
-- [ ] **`--changed`** [5]: only `M/A/D/?` entries plus their parent dirs.
-- [ ] **`--only <globs>`, `-D/--dirs-only`, `--files-only`** [6]; prune empty dirs in tree.
+- [x] **`--changed`** [5]: only `M/A/D/?` entries plus their parent dirs.
+- [x] **`--only <globs>`, `-D/--dirs-only`, `--files-only`** [6]; prune empty dirs in tree.
 - [x] **Negation in `--ignore`** (`!pattern` re-includes) [7]. Check `OverrideBuilder` whitelist semantics first.
 - [x] **`.elxignore`** [8]: `WalkBuilder::add_custom_ignore_filename`.
 

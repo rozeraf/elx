@@ -21,7 +21,7 @@ filtering via `ignore`, layered config via `figment`.
 - Conventional Commits. Commit on your own after each verified, logically complete step (split by topic). Push, merge and tag only when the user asks.
 
 ## Architecture
-- `src/cli.rs`: clap definitions. Short flags in use: `l a T F G 1 o t S X v U r u`.
+- `src/cli.rs`: clap definitions. Short flags in use: `l a T F G 1 o t S X v U r u D`.
 - `src/config.rs`: `Config` + `get_default_config_template()` (the `--init-config` output).
 - `src/display/mod.rs`: `DisplayOptions::build` merges config → `[all]` → `[tree]` → `when_not_tty` → CLI flags (unit-tested there, `is_tty` passed in). Put new override logic here.
 - `src/fs/walker.rs`: one `WalkBuilder` per directory level (depth 1), recursion done manually. `ignore`/`collapse` patterns are `Gitignore` matchers rooted at the listed path (`filter_entry`, never applied to the root itself).

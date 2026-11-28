@@ -75,6 +75,22 @@ pub struct Cli {
     #[arg(short = '1', long = "one-per-line")]
     pub one_per_line: bool,
 
+    /// Show only files matching these patterns (gitignore syntax); with -D, match directories instead
+    #[arg(long, value_delimiter = ',', value_name = "GLOBS")]
+    pub only: Vec<String>,
+
+    /// Show only directories
+    #[arg(short = 'D', long, conflicts_with = "files_only")]
+    pub dirs_only: bool,
+
+    /// Show only non-directories (in tree view, directories that contain them stay)
+    #[arg(long)]
+    pub files_only: bool,
+
+    /// Show only entries with git changes (M, A, D, ?) and the directories containing them
+    #[arg(long)]
+    pub changed: bool,
+
     /// Do not apply ignore patterns from the config file (--ignore still applies)
     #[arg(long)]
     pub no_config_ignore: bool,

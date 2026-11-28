@@ -14,6 +14,7 @@ use display::DisplayOptions;
 use display::get_terminal_width;
 use display::grid::{GridEntry, GridOptions, render};
 use display::long::LongView;
+use fs::filter::EntryFilter;
 use fs::walker::{WalkOptions, Walker};
 use sort::{SortOptions, sort_entries};
 use theme::Theme;
@@ -89,7 +90,23 @@ fn main() -> Result<()> {
         },
     );
     let sort_opts = build_sort_options(&config, &args);
-    let mut entries = walker.collect()?;
+    if args.changed && git::find_repo(&args.path).is_none() {
+        eprintln!(
+            "elx: --changed: {} is not inside a git repository",
+            args.path.display()
+        );
+    }
+    let filter = EntryFilter {
+        changed: args.changed,
+        only: if args.only.is_empty() {
+            None
+        } else {
+            Some(fs::walker::build_matcher(&args.path, &args.only)?)
+        },
+        dirs_only: args.dirs_only,
+        files_only: args.files_only,
+    };
+    let mut entries = filter.apply(walker.collect()?);
     sort_entries(&mut entries, &sort_opts);
 
     render_entries(entries, &args, &config, &options, &theme);

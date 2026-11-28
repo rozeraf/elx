@@ -139,3 +139,36 @@ fn unrestricted_and_no_config_ignore_drop_config_patterns() {
     let list = fixture.list(&["-u"]);
     assert!(has(&list, "a.log") && has(&list, ".hidden"), "{list:?}");
 }
+
+#[test]
+fn only_keeps_matching_files_and_the_dirs_leading_to_them() {
+    let fixture = Fixture::new(
+        &[
+            "src/main.rs",
+            "src/notes.txt",
+            "docs/guide.md",
+            "Cargo.toml",
+        ],
+        "",
+    );
+    let list = fixture.list(&["--only", "*.rs,*.toml"]);
+    assert_eq!(list, ["src", "main.rs", "Cargo.toml"]);
+    let list = fixture.list_at("", &["--only", "*.rs"]);
+    assert!(!has(&list, "docs") && !has(&list, "notes.txt"), "{list:?}");
+}
+
+#[test]
+fn type_filters_in_tree_and_flat_views() {
+    let fixture = Fixture::new(&["a/b/file", "top.txt"], "");
+    for dir in ["a/c", "empty"] {
+        std::fs::create_dir_all(fixture.0.join("files").join(dir)).unwrap();
+    }
+    let list = fixture.list(&["-D"]);
+    assert_eq!(list, ["a", "b", "c", "empty"]);
+    let list = fixture.list(&["--files-only"]);
+    assert_eq!(list, ["a", "b", "file", "top.txt"]);
+    let list = fixture.list(&["--files-only", "--depth", "1"]);
+    assert_eq!(list, ["top.txt"]);
+    let list = fixture.list(&["-D", "--only", "b"]);
+    assert_eq!(list, ["a", "b"]);
+}

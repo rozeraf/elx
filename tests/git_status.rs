@@ -199,3 +199,18 @@ fn show_mode_also_ignores_git_exclude_file() {
         Some('!')
     );
 }
+
+#[test]
+fn changed_shows_only_changed_entries_and_their_parents() {
+    let repo = Repo::new();
+    repo.write("nested/tracked", "after\n");
+    repo.write("new/file", "untracked\n");
+    let output = repo.list(&repo.path(), &["-T", "--changed"]);
+    for name in ["nested", "tracked", "new", "file"] {
+        assert!(status(&output, name).is_some(), "{name}: {output}");
+    }
+    assert!(!output.contains("clean"), "{output}");
+    assert!(!output.contains("link"), "{output}");
+    let flat = repo.list(&repo.path(), &["--changed"]);
+    assert!(flat.contains("nested") && !flat.contains("clean"), "{flat}");
+}

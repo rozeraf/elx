@@ -50,6 +50,9 @@ also works for an explicitly listed file and through directory symlinks.
   `--no-config-ignore` drops the config patterns for one run (`--ignore` still applies).
 - **`.elxignore`:** Per-project ignore file with gitignore syntax, read in every directory like `.gitignore`
   (`.ignore` files work too). Unlike `.gitignore`, it is not affected by `git_ignore`.
+- **Narrowing:** `--only <globs>` shows only matching files, `-D`/`--dirs-only` only directories, `--files-only`
+  only non-directories, `--changed` only entries with git changes (`M`, `A`, `D`, `?`). In tree view the directories
+  leading to a match stay, empty branches are dropped. `elx -T --changed` gives an overview of what changed in a repo.
 - **Show Everything:** `-u`/`--unrestricted` (or `-aa`) turns off all filtering: dotfiles, `.gitignore`,
   `.elxignore`/`.ignore` and config patterns. Explicit `--ignore` and `--git-ignore` still apply.
 - **Tree Collapse:** In tree view, directories matching `collapse` patterns (gitignore syntax) are shown as
