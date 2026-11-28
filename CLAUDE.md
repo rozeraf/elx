@@ -20,6 +20,7 @@ filtering via `ignore`, layered config via `figment`.
 - `main` = latest release, tagged `vX.Y.Z`. `dev` = integration branch; work there or in a feature branch off it.
 - Release: bump `version` in `Cargo.toml` + `Cargo.lock`, `make changelog TAG=vX.Y.Z`, commit `chore: release X.Y.Z`, merge into `main`, tag.
   Pushing the tag runs `.github/workflows/release.yml`: a GitHub release with notes from `git-cliff --latest`.
+  Arch package: `~/projects/update.sh raf elx build` then `publish`, run with `main` checked out (it archives HEAD); PKGBUILD in `~/projects/elx-package/`.
 - `CHANGELOG.md` is generated (`cliff.toml`); don't edit it by hand, fix commit messages instead.
 - Conventional Commits. Commit on your own after each verified, logically complete step (split by topic). Push, merge and tag only when the user asks.
 
