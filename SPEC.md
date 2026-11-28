@@ -143,8 +143,8 @@ directory → symlink → executable (any x bit) → other file.
 | Key | Default | Meaning |
 |---|---|---|
 | `columns` | `["git", "permissions", "links", "owner", "group", "size", "date", "name"]` | Column order. |
-| `headers` | `false` | Underlined header row (`Git Mode Link User Group Size Date Name`). |
-| `autohide_columns` | `false` | Drop columns that are empty for every shown entry (in practice the git column outside a repo or with no changes). |
+| `headers` | `true` | Underlined header row (`Git Mode Link User Group Size Date Name`). |
+| `autohide_columns` | `true` | Drop columns that are empty for every shown entry (in practice the git column outside a repo or with no changes). |
 | `permissions_format` | `"symbolic"` | `symbolic`, `octal`, `both`, `none`. |
 
 `[sort]`: `by` (`name`), `secondary_by` (unset), `ignore_case` (true), `reverse` (false),
@@ -158,9 +158,8 @@ section is absent. Hyperlinks are always disabled when stdout is not a terminal.
 
 ### 4.4 Default template
 
-`--init-config` writes a commented template with every key. It sets
-`[long] headers = true` and `autohide_columns = true`, which differ from the built-in defaults
-above: a config without those keys gets `false`.
+`--init-config` writes a commented template with every key, set to the built-in defaults
+(except `[when_not_tty]`, which it spells out, and commented examples).
 
 ## 5. Filtering
 

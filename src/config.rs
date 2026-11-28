@@ -204,9 +204,9 @@ pub enum PermissionsFormat {
 pub struct LongConfig {
     #[serde(default = "default_columns")]
     pub columns: Vec<Column>,
-    #[serde(default)]
+    #[serde(default = "default_true")]
     pub headers: bool,
-    #[serde(default)]
+    #[serde(default = "default_true")]
     pub autohide_columns: bool,
     #[serde(default)]
     pub permissions_format: PermissionsFormat,
@@ -216,8 +216,8 @@ impl Default for LongConfig {
     fn default() -> Self {
         Self {
             columns: default_columns(),
-            headers: false,
-            autohide_columns: false,
+            headers: true,
+            autohide_columns: true,
             permissions_format: PermissionsFormat::Symbolic,
         }
     }

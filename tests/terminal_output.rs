@@ -16,7 +16,13 @@ impl Fixture {
             NEXT_ID.fetch_add(1, Ordering::Relaxed)
         ));
         std::fs::create_dir(&path).unwrap();
-        std::fs::create_dir(path.join("config")).unwrap();
+        std::fs::create_dir_all(path.join("config/elx")).unwrap();
+        // Line counts below check that names cannot inject newlines; a header row would add one.
+        std::fs::write(
+            path.join("config/elx/config.toml"),
+            "[long]\nheaders = false\n",
+        )
+        .unwrap();
         std::fs::create_dir(path.join("files")).unwrap();
         std::fs::write(path.join("files/evil\x1b[31m\nFAKE"), "").unwrap();
         std::os::unix::fs::symlink("target\x1b]2;injected\x07\nFAKE", path.join("files/link"))
